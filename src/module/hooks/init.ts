@@ -1,29 +1,24 @@
-import { HelloWorldApplication } from '../apps/HelloWorldApplication';
-
-import AbstractSidebarTab = foundry.applications.sidebar.AbstractSidebarTab;
-type Configuration = AbstractSidebarTab.Configuration;
-type RenderContext = AbstractSidebarTab.RenderContext;
-type RenderOptions = AbstractSidebarTab.RenderOptions;
-
-const MODULE_ID = 'wfrp4e-species-builder';
+import { registerSettings } from '../settings/register-settings';
+import { loadCustomSpeciesDefinitions } from '../species/load-custom-species';
+import { transformSpeciesDefinitionsToWfrpConfig } from '../species/transform-species';
+import { injectCustomSpeciesIntoWfrpConfig } from '../species/inject-species';
+import { MODULE_ID } from '../species/types';
 
 Hooks.once('init', () => {
   console.log(`${MODULE_ID} | Initializing module`);
+
+  registerSettings();
+
+  const customSpeciesDefinitions = loadCustomSpeciesDefinitions();
+
+  if (customSpeciesDefinitions.length === 0) {
+    console.log(`${MODULE_ID} | No custom species definitions found`);
+    return;
+  }
+
+  const transformedConfig = transformSpeciesDefinitionsToWfrpConfig(customSpeciesDefinitions);
+
+  injectCustomSpeciesIntoWfrpConfig(transformedConfig);
+
+  console.log(`${MODULE_ID} | Injected ${customSpeciesDefinitions.length} custom species`);
 });
-
-// Add button to sidebar
-Hooks.on(
-  'changeSidebarTab',
-  (app: AbstractSidebarTab<RenderContext, Configuration, RenderOptions>) => {
-    if (app.options.id !== 'settings') return;
-
-    const button = document.createElement('button');
-    button.textContent = 'Open Hello World App';
-
-    button.addEventListener('click', () => {
-      new HelloWorldApplication().render(true);
-    });
-
-    app.element.appendChild(button);
-  },
-);
