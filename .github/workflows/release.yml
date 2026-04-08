@@ -1,0 +1,74 @@
+name: Release Module
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build module
+        run: npm run build
+
+      - name: Prepare release files
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          mkdir -p release
+
+          RELEASE_VERSION="${TAG_NAME#v}"
+          MANIFEST_URL="https://github.com/${REPOSITORY}/releases/download/${TAG_NAME}/module.json"
+          DOWNLOAD_URL="https://github.com/${REPOSITORY}/releases/download/${TAG_NAME}/module.zip"
+
+          node <<'EOF'
+          const fs = require('fs');
+
+          const manifestPath = 'module.json';
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+          const tagName = process.env.TAG_NAME;
+          const repository = process.env.REPOSITORY;
+          const releaseVersion = tagName.replace(/^v/, '');
+
+          manifest.version = releaseVersion;
+          manifest.manifest = `https://github.com/${repository}/releases/download/${tagName}/module.json`;
+          manifest.download = `https://github.com/${repository}/releases/download/${tagName}/module.zip`;
+          manifest.url = `https://github.com/${repository}`;
+
+          fs.writeFileSync('release/module.json', JSON.stringify(manifest, null, 2));
+          EOF
+
+          cp -r build/* release/
+
+      - name: Create module zip
+        run: |
+          cd release
+          zip -r module.zip . -x "module.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/module.json
+            release/module.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
