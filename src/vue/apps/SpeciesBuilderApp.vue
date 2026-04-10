@@ -109,7 +109,7 @@
 
 <script setup lang="ts">
 import { computed, ref, toRaw, watch } from 'vue';
-import type { CustomSpeciesDefinition } from '../../module/types';
+import type { CustomSpeciesDefinition } from '../../types/module';
 import { Data } from '../../module/services';
 
 const props = defineProps<{

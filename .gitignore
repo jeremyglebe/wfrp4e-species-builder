@@ -43,3 +43,6 @@ __screenshots__/
 # Project
 .env.local
 build/
+# this repo: https://github.com/moo-man/WFRP4e-FoundryVTT
+# copied into this project for reference during development, shouldn't be edited or committed
+wfrp4e.system.source

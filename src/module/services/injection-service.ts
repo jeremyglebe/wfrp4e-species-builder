@@ -1,10 +1,25 @@
-import type {
-  CustomSpeciesDefinition,
-  CustomSubspeciesDefinition,
-  WfrpSpeciesConfigFragment,
-  WfrpSubspeciesConfig,
-} from '../types';
+import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../types/module';
 import mergeObject = foundry.utils.mergeObject;
+
+type WfrpSpeciesConfigFragment = Pick<
+  Wfrp4eConfig,
+  | 'species'
+  | 'speciesCharacteristics'
+  | 'speciesSkills'
+  | 'speciesTalents'
+  | 'speciesRandomTalents'
+  | 'speciesTalentReplacement'
+  | 'speciesTraits'
+  | 'speciesMovement'
+  | 'speciesFate'
+  | 'speciesRes'
+  | 'speciesExtra'
+  | 'speciesAge'
+  | 'speciesHeight'
+  | 'speciesCareerReplacements'
+  | 'extraSpecies'
+  | 'subspecies'
+>;
 
 /**
  * Runtime injection boundary between module-native species data and WFRP config.
@@ -95,13 +110,7 @@ function transformSpeciesDefinitionsToWfrpConfig(
 }
 
 function injectCustomSpeciesIntoWfrpConfig(fragment: WfrpSpeciesConfigFragment): void {
-  const wfrpGame = game as Game & {
-    wfrp4e?: {
-      config?: Record<string, unknown>;
-    };
-  };
-
-  const wfrpConfig = wfrpGame.wfrp4e?.config as any;
+  const wfrpConfig = (game as WfrpGame).wfrp4e?.config;
   if (!wfrpConfig) return;
 
   mergeObject(wfrpConfig.species, fragment.species);

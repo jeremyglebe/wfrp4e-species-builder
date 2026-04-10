@@ -1,10 +1,8 @@
 /**
- * Module type barrel export.
+ * Module-owned type barrel export.
  */
 export type { CustomSpeciesDefinition } from './CustomSpeciesDefinition';
 export type { CustomSpeciesSettingsData } from './CustomSpeciesSettingsData';
 export type { CustomSubspeciesDefinition } from './CustomSubspeciesDefinition';
 export type { SpeciesCharacteristics } from './SpeciesCharacteristics';
 export type { SpeciesHeight } from './SpeciesHeight';
-export type { WfrpSpeciesConfigFragment } from './WfrpSpeciesConfigFragment';
-export type { WfrpSubspeciesConfig } from './WfrpSubspeciesConfig';

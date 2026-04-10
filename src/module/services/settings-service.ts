@@ -1,4 +1,4 @@
-import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../types';
+import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../../types/module';
 import { Data } from './data-service';
 
 /**

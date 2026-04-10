@@ -3,7 +3,7 @@ import type {
   CustomSpeciesSettingsData,
   CustomSubspeciesDefinition,
   SpeciesCharacteristics,
-} from '../types';
+} from '../../types/module';
 
 /**
  * Data factory boundary for module-native species editing models.
