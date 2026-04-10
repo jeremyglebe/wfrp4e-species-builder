@@ -1,1 +1,25 @@
-/* Module-wide styles go here later. */
+.species-builder.application {
+  --species-builder-focus-outline: 2px solid rgb(234 181 98 / 75%);
+}
+
+#wfrp4e-species-builder-app .window-content {
+  position: relative;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: hidden;
+}
+
+#wfrp4e-species-builder-root {
+  position: absolute;
+  inset: 15px;
+  box-sizing: border-box;
+  display: block;
+  width: auto;
+  height: auto;
+  min-height: 0;
+}
+
+.species-builder.application :is(input, textarea, button):focus-visible {
+  outline: var(--species-builder-focus-outline);
+  outline-offset: 1px;
+}
