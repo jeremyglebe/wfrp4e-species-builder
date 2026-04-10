@@ -1,2 +1,2 @@
-import './hooks/init'
-import '../../styles/module.css'
+import './hooks';
+import '../../styles/module.css';
