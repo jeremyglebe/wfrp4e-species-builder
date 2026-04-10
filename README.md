@@ -126,25 +126,6 @@ For releases:
 
 ---
 
-## Project Structure
-
-```text
-src/
-  module/
-    index.ts
-    hooks/
-    settings/
-    species/
-    apps/
-  vue/
-styles/
-static/
-module.json
-vite.config.ts
-```
-
----
-
 ## Notes
 
 - Custom species are stored in **world settings**
