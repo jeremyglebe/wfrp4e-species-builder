@@ -1,10 +1,15 @@
-import { createApp, type App as VueApp } from 'vue';
-import SpeciesBuilderApp from '../../vue/SpeciesBuilderApp.vue';
-import { loadCustomSpeciesDefinitions } from '../species/load-custom-species';
-import { saveCustomSpeciesDefinitions } from '../settings/save-custom-species';
+import SpeciesBuilderApp from '../../vue/apps/SpeciesBuilderApp.vue';
+import { Settings } from '../services/settings-service';
+import { FoundryVueApplication } from './FoundryVueApplication';
 
-export class SpeciesBuilderApplication extends foundry.applications.api.ApplicationV2 {
-  private vueApp?: VueApp<Element>;
+/**
+ * Species builder window implementation.
+ *
+ * This class defines app-specific options and props while generic
+ * Foundry/Vue lifecycle logic remains in FoundryVueApplication.
+ */
+export class SpeciesBuilderApplication extends FoundryVueApplication {
+  protected readonly vueRootId = 'wfrp4e-species-builder-root';
 
   static override DEFAULT_OPTIONS = {
     id: 'wfrp4e-species-builder-app',
@@ -19,37 +24,14 @@ export class SpeciesBuilderApplication extends foundry.applications.api.Applicat
     },
   };
 
-  protected override async _renderHTML(): Promise<string> {
-    return `<div id="wfrp4e-species-builder-root"></div>`;
+  protected override getVueComponent() {
+    return SpeciesBuilderApp;
   }
 
-  protected override _replaceHTML(result: string, content: HTMLElement): void {
-    content.innerHTML = result;
-  }
-
-  protected override async _onRender(): Promise<void> {
-    const root = this.element?.querySelector('#wfrp4e-species-builder-root');
-    if (!root) return;
-
-    if (this.vueApp) {
-      this.vueApp.unmount();
-      this.vueApp = undefined;
-    }
-
-    const initialSpecies = loadCustomSpeciesDefinitions();
-
-    this.vueApp = createApp(SpeciesBuilderApp, {
-      initialSpecies,
-      onSave: saveCustomSpeciesDefinitions,
-    });
-
-    this.vueApp.mount(root);
-  }
-
-  protected override _onClose(): void {
-    if (this.vueApp) {
-      this.vueApp.unmount();
-      this.vueApp = undefined;
-    }
+  protected override async getVueProps(): Promise<Record<string, unknown>> {
+    return {
+      initialSpecies: Settings.loadCustomSpeciesDefinitions(),
+      onSave: Settings.saveCustomSpeciesDefinitions,
+    };
   }
 }

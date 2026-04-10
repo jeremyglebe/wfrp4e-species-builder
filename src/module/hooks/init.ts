@@ -1,20 +1,21 @@
-import { registerSettings } from '../settings/register-settings';
-import { loadCustomSpeciesDefinitions } from '../species/load-custom-species';
-import { transformSpeciesDefinitionsToWfrpConfig } from '../species/transform-species';
-import { injectCustomSpeciesIntoWfrpConfig } from '../species/inject-species';
-import { MODULE_ID } from '../species/types';
+import { Injection, MODULE_ID, Settings } from '../services';
+
+/**
+ * Module initialization hook.
+ *
+ * Registers settings, loads module-native species definitions from world
+ * storage, then applies them into WFRP runtime config.
+ */
 
 Hooks.once('init', () => {
   console.log(`${MODULE_ID} | Initializing module`);
 
-  registerSettings();
+  Settings.register();
 
-  const customSpeciesDefinitions = loadCustomSpeciesDefinitions();
+  const customSpeciesDefinitions = Settings.loadCustomSpeciesDefinitions();
 
   if (customSpeciesDefinitions.length > 0) {
-    const transformedConfig = transformSpeciesDefinitionsToWfrpConfig(customSpeciesDefinitions);
-
-    injectCustomSpeciesIntoWfrpConfig(transformedConfig);
+    Injection.applySpeciesDefinitions(customSpeciesDefinitions);
 
     console.log(`${MODULE_ID} | Injected ${customSpeciesDefinitions.length} custom species`);
   } else {

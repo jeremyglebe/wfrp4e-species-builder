@@ -1,0 +1,72 @@
+📦Foundry WFRP4e Species Builder
+ ┣ 📂.github
+ ┃ ┗ 📂workflows
+ ┃    ┗ 📜release.yml
+ ┃
+ ┣ 📂.vscode
+ ┃ ┗ 📜extensions.json
+ ┃
+ ┣ 📂public
+ ┃ ┗ 📜favicon.ico
+ ┃
+ ┣ 📂scripts
+ ┃ ┗ 📜generate-tree.mjs
+ ┃
+ ┣ 📂src
+ ┃ ┣ 📂module
+ ┃ ┃ ┣ 📂apps
+ ┃ ┃ ┃ ┣ 📜FoundryVueApplication.ts
+ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┗ 📜SpeciesBuilderApplication.ts
+ ┃ ┃ ┃
+ ┃ ┃ ┣ 📂hooks
+ ┃ ┃ ┃ ┣ 📜changeSidebarTab.ts
+ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┗ 📜init.ts
+ ┃ ┃ ┃
+ ┃ ┃ ┣ 📂services
+ ┃ ┃ ┃ ┣ 📜data-service.ts
+ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┣ 📜injection-service.ts
+ ┃ ┃ ┃ ┗ 📜settings-service.ts
+ ┃ ┃ ┃
+ ┃ ┃ ┣ 📂types
+ ┃ ┃ ┃ ┣ 📜CustomSpeciesDefinition.ts
+ ┃ ┃ ┃ ┣ 📜CustomSpeciesSettingsData.ts
+ ┃ ┃ ┃ ┣ 📜CustomSubspeciesDefinition.ts
+ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┣ 📜SpeciesCharacteristics.ts
+ ┃ ┃ ┃ ┣ 📜SpeciesHeight.ts
+ ┃ ┃ ┃ ┣ 📜WfrpSpeciesConfigFragment.ts
+ ┃ ┃ ┃ ┗ 📜WfrpSubspeciesConfig.ts
+ ┃ ┃ ┃
+ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃
+ ┃ ┣ 📂vue
+ ┃ ┃ ┗ 📂apps
+ ┃ ┃    ┗ 📜SpeciesBuilderApp.vue
+ ┃ ┃
+ ┃ ┗ 📜vue.d.ts
+ ┃
+ ┣ 📂static
+ ┃ ┗ 📂lang
+ ┃    ┗ 📜en.json
+ ┃
+ ┣ 📂styles
+ ┃ ┗ 📜module.css
+ ┃
+ ┣ 📜.editorconfig
+ ┣ 📜.gitattributes
+ ┣ 📜.gitignore
+ ┣ 📜.oxlintrc.json
+ ┣ 📜.prettierrc.json
+ ┣ 📜env.d.ts
+ ┣ 📜eslint.config.ts
+ ┣ 📜module.json
+ ┣ 📜package-lock.json
+ ┣ 📜package.json
+ ┣ 📜README.md
+ ┣ 📜tsconfig.app.json
+ ┣ 📜tsconfig.json
+ ┣ 📜tsconfig.node.json
+ ┗ 📜vite.config.ts

@@ -1,5 +1,9 @@
 import { SpeciesBuilderApplication } from '../apps/SpeciesBuilderApplication';
 
+/**
+ * Adds a Species Builder launcher button to the settings sidebar tab.
+ */
+
 // type aliases
 import AbstractSidebarTab = foundry.applications.sidebar.AbstractSidebarTab;
 type Configuration = AbstractSidebarTab.Configuration;

@@ -3,13 +3,27 @@ import type {
   CustomSubspeciesDefinition,
   WfrpSpeciesConfigFragment,
   WfrpSubspeciesConfig,
-} from './types';
+} from '../types';
+import mergeObject = foundry.utils.mergeObject;
 
 /**
- * Converts module-native species objects into the split config buckets
- * expected by WFRP4e chargen.
+ * Runtime injection boundary between module-native species data and WFRP config.
+ *
+ * Transform and inject live together here because they represent one runtime
+ * pipeline: module storage model -> WFRP split config model -> config merge.
  */
-export function transformSpeciesDefinitionsToWfrpConfig(
+export const Injection = {
+  applySpeciesDefinitions,
+  transformSpeciesDefinitionsToWfrpConfig,
+  injectCustomSpeciesIntoWfrpConfig,
+} as const;
+
+function applySpeciesDefinitions(speciesDefinitions: CustomSpeciesDefinition[]): void {
+  const configFragment = transformSpeciesDefinitionsToWfrpConfig(speciesDefinitions);
+  injectCustomSpeciesIntoWfrpConfig(configFragment);
+}
+
+function transformSpeciesDefinitionsToWfrpConfig(
   speciesDefinitions: CustomSpeciesDefinition[],
 ): WfrpSpeciesConfigFragment {
   const fragment: WfrpSpeciesConfigFragment = {
@@ -39,11 +53,11 @@ export function transformSpeciesDefinitionsToWfrpConfig(
     fragment.speciesSkills[speciesKey] = species.skills;
     fragment.speciesTalents[speciesKey] = species.talents;
 
-    if (species.randomTalents && Object.keys(species.randomTalents).length > 0) {
+    if (hasKeys(species.randomTalents)) {
       fragment.speciesRandomTalents[speciesKey] = species.randomTalents;
     }
 
-    if (species.talentReplacement && Object.keys(species.talentReplacement).length > 0) {
+    if (hasKeys(species.talentReplacement)) {
       fragment.speciesTalentReplacement[speciesKey] = species.talentReplacement;
     }
 
@@ -64,7 +78,7 @@ export function transformSpeciesDefinitionsToWfrpConfig(
       fragment.speciesHeight[speciesKey] = species.height;
     }
 
-    if (species.careerReplacements && Object.keys(species.careerReplacements).length > 0) {
+    if (hasKeys(species.careerReplacements)) {
       fragment.speciesCareerReplacements[speciesKey] = species.careerReplacements;
     }
 
@@ -72,12 +86,45 @@ export function transformSpeciesDefinitionsToWfrpConfig(
       fragment.extraSpecies.push(speciesKey);
     }
 
-    if (species.subspecies && Object.keys(species.subspecies).length > 0) {
+    if (hasKeys(species.subspecies)) {
       fragment.subspecies[speciesKey] = transformSubspecies(species.subspecies);
     }
   }
 
   return fragment;
+}
+
+function injectCustomSpeciesIntoWfrpConfig(fragment: WfrpSpeciesConfigFragment): void {
+  const wfrpGame = game as Game & {
+    wfrp4e?: {
+      config?: Record<string, unknown>;
+    };
+  };
+
+  const wfrpConfig = wfrpGame.wfrp4e?.config as any;
+  if (!wfrpConfig) return;
+
+  mergeObject(wfrpConfig.species, fragment.species);
+  mergeObject(wfrpConfig.speciesCharacteristics, fragment.speciesCharacteristics);
+  mergeObject(wfrpConfig.speciesSkills, fragment.speciesSkills);
+  mergeObject(wfrpConfig.speciesTalents, fragment.speciesTalents);
+  mergeObject(wfrpConfig.speciesRandomTalents, fragment.speciesRandomTalents);
+  mergeObject(wfrpConfig.speciesTalentReplacement, fragment.speciesTalentReplacement);
+  mergeObject(wfrpConfig.speciesTraits, fragment.speciesTraits);
+  mergeObject(wfrpConfig.speciesMovement, fragment.speciesMovement);
+  mergeObject(wfrpConfig.speciesFate, fragment.speciesFate);
+  mergeObject(wfrpConfig.speciesRes, fragment.speciesRes);
+  mergeObject(wfrpConfig.speciesExtra, fragment.speciesExtra);
+  mergeObject(wfrpConfig.speciesAge, fragment.speciesAge);
+  mergeObject(wfrpConfig.speciesHeight, fragment.speciesHeight);
+  mergeObject(wfrpConfig.speciesCareerReplacements, fragment.speciesCareerReplacements);
+  mergeObject(wfrpConfig.subspecies, fragment.subspecies);
+
+  for (const speciesKey of fragment.extraSpecies) {
+    if (!wfrpConfig.extraSpecies.includes(speciesKey)) {
+      wfrpConfig.extraSpecies.push(speciesKey);
+    }
+  }
 }
 
 function transformSubspecies(
@@ -102,4 +149,8 @@ function transformSubspecies(
   }
 
   return transformed;
+}
+
+function hasKeys(value: object | undefined): value is Record<string, unknown> {
+  return Boolean(value && Object.keys(value).length > 0);
 }

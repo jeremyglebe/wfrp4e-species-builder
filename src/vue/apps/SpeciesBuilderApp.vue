@@ -8,14 +8,8 @@
         </div>
 
         <div class="species-builder__species-list">
-          <button
-            v-for="species in speciesList"
-            :key="species.id"
-            type="button"
-            class="species-builder__species-item"
-            :class="{ 'is-selected': selectedSpeciesId === species.id }"
-            @click="selectSpecies(species.id)"
-          >
+          <button v-for="species in speciesList" :key="species.id" type="button" class="species-builder__species-item"
+            :class="{ 'is-selected': selectedSpeciesId === species.id }" @click="selectSpecies(species.id)">
             <strong>{{ species.name || 'Unnamed Species' }}</strong>
             <div class="species-builder__species-id">{{ species.id }}</div>
           </button>
@@ -115,8 +109,8 @@
 
 <script setup lang="ts">
 import { computed, ref, toRaw, watch } from 'vue';
-import type { CustomSpeciesDefinition } from '../module/species/types';
-import { createEmptySpeciesDefinition } from '../module/species/factories';
+import type { CustomSpeciesDefinition } from '../../module/types';
+import { Data } from '../../module/services';
 
 const props = defineProps<{
   initialSpecies: CustomSpeciesDefinition[];
@@ -162,7 +156,7 @@ function selectSpecies(speciesId: string): void {
 }
 
 function addSpecies(): void {
-  const newSpecies = createEmptySpeciesDefinition();
+  const newSpecies = Data.Empty.CustomSpeciesDefinition();
   speciesList.value.push(newSpecies);
   selectedSpeciesId.value = newSpecies.id;
 }
@@ -182,7 +176,13 @@ function deleteSelectedSpecies(): void {
     return;
   }
 
-  const nextSpecies = speciesList.value[Math.max(0, index - 1)];
+  const nextSpecies = speciesList.value[Math.max(0, index - 1)] ?? speciesList.value[0];
+
+  if (!nextSpecies) {
+    selectedSpeciesId.value = null;
+    return;
+  }
+
   selectedSpeciesId.value = nextSpecies.id;
 }
 
