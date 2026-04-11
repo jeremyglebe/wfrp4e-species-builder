@@ -7,161 +7,227 @@
       </div>
     </div>
 
+    <div class="npc-builder__tabs">
+      <button type="button" class="npc-builder__tab" :class="{ 'is-active': activeTab === 'build' }"
+        @click="activeTab = 'build'" :disabled="isBusy">
+        Build
+      </button>
+      <button type="button" class="npc-builder__tab" :class="{ 'is-active': activeTab === 'options' }"
+        @click="activeTab = 'options'" :disabled="isBusy">
+        Options
+      </button>
+    </div>
+
     <div class="npc-builder__content">
-      <!-- Settings Section -->
-      <div class="npc-builder__section">
-        <div class="npc-builder__section-title">Folder Settings</div>
+      <section v-if="activeTab === 'build'" class="npc-builder__build-grid">
+        <div class="npc-builder__build-main">
+          <div class="npc-builder__section">
+            <div class="npc-builder__section-title">1. Base Statblock</div>
+            <div class="npc-builder__hint">
+              Choose a base actor from your configured base folder.
+            </div>
 
-        <div class="npc-builder__form-group">
-          <label>Base Folder Name:</label>
-          <div class="npc-builder__input-row">
-            <input v-model="settings.baseFolderName" type="text" class="npc-builder__input" />
-            <button type="button" class="npc-builder__button npc-builder__button--primary" @click="saveFolderSettings"
-              :disabled="isBusy">
-              Save
-            </button>
-          </div>
-          <div class="npc-builder__status">
-            <span :style="{ color: baseFolderFound ? '#888' : '#d35400' }">
-              {{ baseFolderFound ? '✓ Found' : '✗ Not found yet' }}
-            </span>
-          </div>
-        </div>
+            <div class="npc-builder__form-group">
+              <label>From Base Folder:</label>
+              <select v-model="baseActorId" class="npc-builder__select" :disabled="isBusy"
+                @change="handleBaseActorSelectionChange">
+                <option value="">-- Select Actor --</option>
+                <option v-for="actor in baseActors" :key="actor.id" :value="actor.id">
+                  {{ actor.name }}
+                </option>
+              </select>
+            </div>
 
-        <div class="npc-builder__form-group">
-          <label>Output Folder Name:</label>
-          <input v-model="settings.outputFolderName" type="text" class="npc-builder__input" />
-          <div class="npc-builder__status">
-            <span :style="{ color: outputFolderFound ? '#888' : '#d35400' }">
-              {{ outputFolderFound ? '✓ Found' : '✗ Not found yet' }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Base Actor Selection -->
-      <div class="npc-builder__section">
-        <div class="npc-builder__section-title">Base Statblock</div>
-
-        <div class="npc-builder__form-group">
-          <label>From Base Folder:</label>
-          <select v-model="baseActorId" class="npc-builder__select" :disabled="isBusy">
-            <option value="">-- Select Actor --</option>
-            <option v-for="actor in baseActors" :key="actor.id" :value="actor.id">
-              {{ actor.name }}
-            </option>
-          </select>
-        </div>
-
-        <div class="npc-builder__form-group">
-          <label>Override (Drag Actor Here):</label>
-          <div class="npc-builder__drop-zone" @dragover.prevent @drop="handleBaseActorDrop">
-            <div v-if="baseActorOverride" class="npc-builder__override-display">
-              <img :src="baseActorOverride.img || ''" class="npc-builder__override-img" />
-              <div class="npc-builder__override-info">
-                <strong>{{ baseActorOverride.name }}</strong>
-                <div class="npc-builder__override-label">Override active</div>
+            <div class="npc-builder__override-header">
+              <div>
+                <strong>Base Statblock Override</strong>
+                <div class="npc-builder__hint">Optional override for the dropdown selection.</div>
               </div>
-              <button type="button" class="npc-builder__button npc-builder__button--ghost"
-                @click="baseActorOverride = null">
-                Clear
+              <button type="button" class="npc-builder__button npc-builder__button--small" :disabled="isBusy"
+                @click="toggleBaseOverrideDropZone">
+                {{ showBaseOverrideDropZone ? 'Collapse' : 'Expand' }}
               </button>
             </div>
-            <div v-else class="npc-builder__drop-placeholder">
-              Drop an Actor here to override the dropdown selection.
+
+            <div v-if="showBaseOverrideDropZone" class="npc-builder__form-group">
+              <label>Override (Drag Actor Here):</label>
+              <div class="npc-builder__drop-zone" @dragover.prevent @drop="handleBaseActorDrop">
+                <div v-if="baseActorOverride" class="npc-builder__override-display">
+                  <img :src="baseActorOverride.img || ''" class="npc-builder__override-img" />
+                  <div class="npc-builder__override-info">
+                    <strong>{{ baseActorOverride.name }}</strong>
+                    <div class="npc-builder__override-label">Override active</div>
+                  </div>
+                  <button type="button" class="npc-builder__button npc-builder__button--ghost"
+                    @click="baseActorOverride = null">
+                    Clear
+                  </button>
+                </div>
+                <div v-else class="npc-builder__drop-placeholder">
+                  Drop an Actor here to override the dropdown selection.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="npc-builder__section">
+            <div class="npc-builder__section-title">2. Careers</div>
+            <div class="npc-builder__hint">
+              Final actor name and image come from the last career in the list.
+            </div>
+
+            <div class="npc-builder__form-group">
+              <label>Drop Career Items Here:</label>
+              <div class="npc-builder__drop-zone" @dragover.prevent @drop="handleCareerDrop">
+                <div v-if="careers.length" class="npc-builder__drop-hint">
+                  Drop additional Career Items Here
+                </div>
+                <div v-else class="npc-builder__drop-placeholder">
+                  Drop Career Items Here
+                </div>
+              </div>
+            </div>
+
+            <div class="npc-builder__form-group">
+              <label>Queued Careers:</label>
+              <div class="npc-builder__career-list">
+                <div v-if="careers.length === 0" class="npc-builder__empty">
+                  No careers added yet.
+                </div>
+                <div v-for="(career, index) in careers" :key="`${career.uuid}-${index}`"
+                  class="npc-builder__career-row">
+                  <img :src="career.img || ''" class="npc-builder__career-img" />
+                  <div class="npc-builder__career-info">
+                    <strong>{{ career.name }}</strong>
+                    <div class="npc-builder__career-meta">
+                      Group: {{ career.careergroup || '-' }} | Level: {{ career.level ?? '-' }}
+                      <span v-if="index === careers.length - 1" class="npc-builder__final-label">| Final Career</span>
+                    </div>
+                  </div>
+
+                  <div class="npc-builder__career-controls">
+                    <div class="npc-builder__quantity-control">
+                      <label>Qty</label>
+                      <input v-model.number="career.quantity" type="number" min="1"
+                        class="npc-builder__quantity-input" />
+                    </div>
+
+                    <div class="npc-builder__button-group">
+                      <button type="button" class="npc-builder__button npc-builder__button--small"
+                        @click="moveCareer(index, -1)" :disabled="index === 0 || isBusy">
+                        ↑
+                      </button>
+                      <button type="button" class="npc-builder__button npc-builder__button--small"
+                        @click="moveCareer(index, 1)" :disabled="index === careers.length - 1 || isBusy">
+                        ↓
+                      </button>
+                      <button type="button" class="npc-builder__button npc-builder__button--small"
+                        @click="removeCareer(index)" :disabled="isBusy">
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Options -->
-      <div class="npc-builder__section">
-        <div class="npc-builder__section-title">Options</div>
-
-        <label class="npc-builder__checkbox">
-          <input v-model="settings.includeSpeciesInName" type="checkbox" />
-          <span>Include Species / Ancestry / Race in Actor Name</span>
-        </label>
-
-        <label class="npc-builder__checkbox">
-          <input v-model="settings.autoAddLowerCareers" type="checkbox" />
-          <span>Auto-add lower careers from same career group</span>
-        </label>
-        <div class="npc-builder__hint">
-          Searches world items and all item compendiums. Lower careers are inserted before the dropped career.
-        </div>
-
-        <label class="npc-builder__checkbox">
-          <input v-model="settings.enhanceImage" type="checkbox" />
-          <span>Enhance Image?</span>
-        </label>
-
-        <label class="npc-builder__checkbox">
-          <input v-model="settings.circularToken" type="checkbox" />
-          <span>Circular Token?</span>
-        </label>
-      </div>
-
-      <!-- Career Queue -->
-      <div class="npc-builder__section">
-        <div class="npc-builder__section-title">Careers</div>
-
-        <div class="npc-builder__form-group">
-          <label>Drop Career Items Here:</label>
-          <div class="npc-builder__drop-zone" @dragover.prevent @drop="handleCareerDrop">
-            <div v-if="careers.length" class="npc-builder__drop-hint">
-              Drop additional Career Items Here
+        <div class="npc-builder__build-side">
+          <div class="npc-builder__section">
+            <div class="npc-builder__section-title">Build Summary</div>
+            <div class="npc-builder__summary-top">
+              <div class="npc-builder__summary-image">
+                <img v-if="finalCareer?.img" :src="finalCareer.img" alt="Final career preview" />
+                <div v-else class="npc-builder__drop-placeholder">No Preview</div>
+              </div>
+              <div class="npc-builder__summary-info">
+                <div class="npc-builder__summary-label">Final Name</div>
+                <div class="npc-builder__summary-value">{{ previewName }}</div>
+                <div class="npc-builder__summary-label">Preview Note</div>
+                <div class="npc-builder__summary-note">{{ previewImageNote }}</div>
+              </div>
             </div>
-            <div v-else class="npc-builder__drop-placeholder">
-              Drop Career Items Here
+
+            <div class="npc-builder__summary-grid">
+              <div class="npc-builder__summary-card">
+                <div class="npc-builder__summary-label">Base Actor</div>
+                <div class="npc-builder__summary-value">{{ baseActorSummary?.name || 'None selected' }}</div>
+                <div class="npc-builder__summary-note">{{ baseActorSummary?.source || '' }}</div>
+              </div>
+              <div class="npc-builder__summary-card">
+                <div class="npc-builder__summary-label">Career Rows</div>
+                <div class="npc-builder__summary-value">{{ careers.length }}</div>
+                <div class="npc-builder__summary-note">Total instances: {{ totalCareerInstances }}</div>
+              </div>
             </div>
           </div>
+
+          <div class="npc-builder__section">
+            <div class="npc-builder__section-title">Advanced Preview (planned)</div>
+            <div class="npc-builder__hint">Trappings/talents preview and unresolved warnings will go here.</div>
+          </div>
+        </div>
+      </section>
+
+      <section v-else class="npc-builder__options-grid">
+        <div class="npc-builder__section">
+          <div class="npc-builder__section-title">Folders</div>
+
+          <div class="npc-builder__form-group">
+            <label>Base Folder Name:</label>
+            <div class="npc-builder__input-row">
+              <input v-model="settings.baseFolderName" type="text" class="npc-builder__input" />
+              <button type="button" class="npc-builder__button npc-builder__button--primary" @click="saveFolderSettings"
+                :disabled="isBusy">
+                Save
+              </button>
+            </div>
+            <div class="npc-builder__status">
+              <span :style="{ color: baseFolderFound ? '#888' : '#d35400' }">
+                {{ baseFolderFound ? '✓ Found' : '✗ Not found yet' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="npc-builder__form-group">
+            <label>Output Folder Name:</label>
+            <input v-model="settings.outputFolderName" type="text" class="npc-builder__input" />
+            <div class="npc-builder__status">
+              <span :style="{ color: outputFolderFound ? '#888' : '#d35400' }">
+                {{ outputFolderFound ? '✓ Found' : '✗ Not found yet' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="npc-builder__section">
+          <div class="npc-builder__section-title">Behavior</div>
+
+          <label class="npc-builder__checkbox">
+            <input v-model="settings.includeSpeciesInName" type="checkbox" />
+            <span>Include Species / Ancestry / Race in Actor Name</span>
+          </label>
+
+          <label class="npc-builder__checkbox">
+            <input v-model="settings.autoAddLowerCareers" type="checkbox" />
+            <span>Auto-add lower careers from same career group</span>
+          </label>
           <div class="npc-builder__hint">
-            Final actor name and image come from the <b>last</b> career in the list.
+            Searches world items and all item compendiums. Lower careers are inserted before the dropped career.
           </div>
+
+          <label class="npc-builder__checkbox">
+            <input v-model="settings.enhanceImage" type="checkbox" />
+            <span>Enhance Image?</span>
+          </label>
+
+          <label class="npc-builder__checkbox">
+            <input v-model="settings.circularToken" type="checkbox" />
+            <span>Circular Token?</span>
+          </label>
         </div>
-
-        <div class="npc-builder__form-group">
-          <label>Queued Careers:</label>
-          <div class="npc-builder__career-list">
-            <div v-if="careers.length === 0" class="npc-builder__empty">
-              No careers added yet.
-            </div>
-            <div v-for="(career, index) in careers" :key="`${career.uuid}-${index}`" class="npc-builder__career-row">
-              <img :src="career.img || ''" class="npc-builder__career-img" />
-              <div class="npc-builder__career-info">
-                <strong>{{ career.name }}</strong>
-                <div class="npc-builder__career-meta">
-                  Group: {{ career.careergroup || '-' }} | Level: {{ career.level ?? '-' }}
-                  <span v-if="index === careers.length - 1" class="npc-builder__final-label">| Final Career</span>
-                </div>
-              </div>
-
-              <div class="npc-builder__career-controls">
-                <div class="npc-builder__quantity-control">
-                  <label>Qty</label>
-                  <input v-model.number="career.quantity" type="number" min="1" class="npc-builder__quantity-input" />
-                </div>
-
-                <div class="npc-builder__button-group">
-                  <button type="button" class="npc-builder__button npc-builder__button--small"
-                    @click="moveCareer(index, -1)" :disabled="index === 0 || isBusy">
-                    ↑
-                  </button>
-                  <button type="button" class="npc-builder__button npc-builder__button--small"
-                    @click="moveCareer(index, 1)" :disabled="index === careers.length - 1 || isBusy">
-                    ↓
-                  </button>
-                  <button type="button" class="npc-builder__button npc-builder__button--small"
-                    @click="removeCareer(index)" :disabled="isBusy">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
 
     <!-- Footer Actions -->
@@ -188,7 +254,7 @@ import {
   normalizeFolderName,
   saveNPCBuilderSettings,
 } from '../../module/services/npc-builder-settings';
-import { buildFinalName } from '../../module/services/npc-builder-naming';
+import { buildFinalName, getSpeciesName } from '../../module/services/npc-builder-naming';
 import { CareerIndexService } from '../../module/services/career-index-service';
 
 type CloseCallback = () => void;
@@ -200,6 +266,8 @@ const props = defineProps<{
 const baseActorId = ref('');
 const baseActorOverride = ref<BaseActorOverride | null>(null);
 const careers = ref<CareerEntry[]>([]);
+const activeTab = ref<'build' | 'options'>('build');
+const showBaseOverrideDropZone = ref(true);
 const settings = ref<NPCBuilderSettings>(loadNPCBuilderSettings());
 const isBusy = ref(false);
 const busyMessage = ref('');
@@ -218,8 +286,61 @@ const baseActors = computed(() => {
 
   return (game.actors?.contents ?? [])
     .filter((actor: any) => actor.folder?.id === baseFolder.id)
-    .map((actor: any) => ({ id: actor.id, name: actor.name, img: actor.img }))
+    .map((actor: any) => ({ id: actor.id, name: actor.name, img: actor.img, species: getSpeciesName(actor) }))
     .sort((a: BaseActorOption, b: BaseActorOption) => a.name.localeCompare(b.name));
+});
+
+const finalCareer = computed(() => {
+  return careers.value.length ? careers.value[careers.value.length - 1] : null;
+});
+
+const selectedBaseActor = computed(() => {
+  return baseActors.value.find((actor) => actor.id === baseActorId.value) ?? null;
+});
+
+const baseActorSummary = computed(() => {
+  if (baseActorOverride.value) {
+    return {
+      name: baseActorOverride.value.name,
+      img: baseActorOverride.value.img || '',
+      source: 'Override',
+    };
+  }
+
+  if (selectedBaseActor.value) {
+    return {
+      name: selectedBaseActor.value.name,
+      img: selectedBaseActor.value.img,
+      source: 'Base Folder',
+    };
+  }
+
+  return null;
+});
+
+const previewName = computed(() => {
+  if (!finalCareer.value) {
+    return 'No final career selected yet';
+  }
+
+  const previewSpecies = baseActorOverride.value?.species || selectedBaseActor.value?.species || '';
+  if (!settings.value.includeSpeciesInName) {
+    return finalCareer.value.name;
+  }
+
+  return previewSpecies ? `${previewSpecies} ${finalCareer.value.name}` : `[Species] ${finalCareer.value.name}`;
+});
+
+const previewImageNote = computed(() => {
+  return settings.value.enhanceImage
+    ? 'Live preview uses source image only. Enhancement is applied during build.'
+    : 'Live preview uses source image.';
+});
+
+const totalCareerInstances = computed(() => {
+  return careers.value.reduce((sum, career) => {
+    return sum + (Number.isFinite(career.quantity) ? career.quantity : 1);
+  }, 0);
 });
 
 const baseFolderFound = computed(() => {
@@ -255,6 +376,17 @@ function findCareerIndexByUuid(uuid: string): number {
   return careers.value.findIndex((career) => career.uuid === uuid);
 }
 
+function handleBaseActorSelectionChange(): void {
+  if (baseActorId.value) {
+    baseActorOverride.value = null;
+    showBaseOverrideDropZone.value = false;
+  }
+}
+
+function toggleBaseOverrideDropZone(): void {
+  showBaseOverrideDropZone.value = !showBaseOverrideDropZone.value;
+}
+
 async function handleBaseActorDrop(event: DragEvent): Promise<void> {
   if (isBusy.value) return;
   event.preventDefault();
@@ -288,7 +420,9 @@ async function handleBaseActorDrop(event: DragEvent): Promise<void> {
     uuid: droppedActor.uuid,
     name: droppedActor.name,
     img: droppedActor.img || '',
+    species: getSpeciesName(droppedActor),
   };
+  showBaseOverrideDropZone.value = true;
 }
 
 async function handleCareerDrop(event: DragEvent): Promise<void> {
@@ -564,6 +698,7 @@ async function buildNPC(): Promise<void> {
 
     baseActorOverride.value = null;
     careers.value = [];
+    showBaseOverrideDropZone.value = true;
   } catch (error) {
     console.error('NPC Builder error:', error);
     ui.notifications?.error('Failed to build NPC. Check the console for details.');
@@ -631,8 +766,11 @@ watch(
 <style scoped>
 .npc-builder {
   box-sizing: border-box;
-  width: 100%;
-  height: 100%;
+  position: relative;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   color: #f1e1ce;
@@ -679,6 +817,125 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.npc-builder__tabs {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  padding: 10px 10px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.npc-builder__tab {
+  border: 1px solid rgb(205 103 89 / 60%);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-radius: 6px 6px 0 0;
+  padding: 8px 12px;
+  background: rgb(100 60 50 / 20%);
+  color: #d3bb9f;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.npc-builder__tab.is-active {
+  opacity: 1;
+  color: #f1e1ce;
+  background: rgb(120 75 58 / 25%);
+}
+
+.npc-builder__build-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.npc-builder__build-main,
+.npc-builder__build-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.npc-builder__options-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.npc-builder__override-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 2%);
+  margin-bottom: 10px;
+}
+
+.npc-builder__summary-top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.npc-builder__summary-image {
+  width: 72px;
+  height: 72px;
+  border: 1px solid #666;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 3%);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.npc-builder__summary-image img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+}
+
+.npc-builder__summary-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.npc-builder__summary-label {
+  font-size: 11px;
+  color: #888;
+}
+
+.npc-builder__summary-value {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.npc-builder__summary-note {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.35;
+}
+
+.npc-builder__summary-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.npc-builder__summary-card {
+  padding: 8px;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 6px;
 }
 
 .npc-builder__section {
@@ -934,5 +1191,13 @@ watch(
   gap: 8px;
   justify-content: flex-end;
   flex: 0 0 auto;
+}
+
+@media (max-width: 980px) {
+
+  .npc-builder__build-grid,
+  .npc-builder__options-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

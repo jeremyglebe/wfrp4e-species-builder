@@ -27,6 +27,8 @@ export interface BaseActorOption {
   name: string;
   /** URL to the actor's artwork image */
   img: string;
+  /** Species/ancestry/race label used by preview naming */
+  species: string;
 }
 
 /**
@@ -42,6 +44,8 @@ export interface BaseActorOverride {
   name: string;
   /** URL to the actor's artwork image */
   img: string;
+  /** Species/ancestry/race label used by preview naming */
+  species: string;
 }
 
 /**

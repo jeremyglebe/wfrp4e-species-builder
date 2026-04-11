@@ -16,8 +16,15 @@ Hooks.on(
   (app: AbstractSidebarTab<RenderContext, Configuration, RenderOptions>) => {
     if (app.options.id !== 'settings') return;
 
+    const containerId = 'wfrp4e-builder-launchers';
+    const existingContainer = app.element.querySelector(`#${containerId}`);
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+
     // Create container for buttons
     const container = document.createElement('div');
+    container.id = containerId;
     container.style.cssText =
       'display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;';
 
