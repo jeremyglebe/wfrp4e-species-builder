@@ -34,6 +34,24 @@ vMAJOR.MINOR.PATCH
 
 ## Creating a Release
 
+### Interactive Release Script (Recommended)
+
+Run:
+
+```sh
+npm run release
+```
+
+The script walks you through:
+
+* selecting the next semantic version
+* updating `module.json` release metadata
+* optionally syncing `package.json` version
+* optionally running `npm run build`
+* optionally creating/pushing the release commit and tag
+
+If you prefer fully manual steps, use the workflow below.
+
 ### 1. Commit and Push Changes
 
 Ensure all changes are committed and pushed:
