@@ -156,6 +156,7 @@ import SubspeciesBuilderSection from './SubspeciesBuilderSection.vue';
 const props = defineProps<{
   initialSpecies: CustomSpeciesDefinition[];
   onSave: (species: CustomSpeciesDefinition[]) => Promise<void>;
+  onSavedSinceOpen?: () => void;
 }>();
 
 const speciesList = ref<CustomSpeciesDefinition[]>(structuredClone(props.initialSpecies));
@@ -318,7 +319,7 @@ function handleSubspeciesValidationChange(value: string | null): void {
 }
 
 function serializeSpecies(species: CustomSpeciesDefinition[]): string {
-  return JSON.stringify(structuredClone(toRaw(species)));
+  return JSON.stringify(species);
 }
 
 async function persistSpeciesToStorage(successMessage: string): Promise<void> {
@@ -326,6 +327,7 @@ async function persistSpeciesToStorage(successMessage: string): Promise<void> {
 
   try {
     await props.onSave(structuredClone(toRaw(speciesList.value)));
+    props.onSavedSinceOpen?.();
     initialSnapshot.value = serializeSpecies(speciesList.value);
     ui.notifications?.info(successMessage);
   } finally {

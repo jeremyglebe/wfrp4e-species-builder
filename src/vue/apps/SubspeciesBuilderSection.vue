@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, toRaw, watch } from 'vue';
 import type {
     CustomSpeciesDefinition,
     CustomSubspeciesDefinition,
@@ -234,7 +234,7 @@ function deleteSelectedSubspecies(): void {
 function enableSubspeciesCharacteristicsOverride(): void {
     if (!selectedSubspecies.value) return;
 
-    selectedSubspecies.value.characteristics = structuredClone(props.selectedSpecies.characteristics);
+    selectedSubspecies.value.characteristics = structuredClone(toRaw(props.selectedSpecies.characteristics));
 }
 
 function clearSubspeciesCharacteristicsOverride(): void {
@@ -250,8 +250,12 @@ function parseLineList(value: string): string[] {
         .filter((entry) => entry.length > 0);
 }
 
-function parseOptionalNumber(value: string): number | undefined {
-    const normalized = value.trim();
+function parseOptionalNumber(value: unknown): number | undefined {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : undefined;
+    }
+
+    const normalized = String(value ?? '').trim();
     if (!normalized) return undefined;
 
     const parsed = Number(normalized);
@@ -285,7 +289,7 @@ function makeOptionalLineListComputed(field: 'skills' | 'talents' | 'traits') {
 
 function setOptionalSubspeciesNumber(
     field: 'movement' | 'fate' | 'resilience' | 'extra',
-    value: string,
+    value: string | number,
 ): void {
     if (!selectedSubspecies.value) return;
 
@@ -305,7 +309,7 @@ function makeOptionalNumberComputed(field: 'movement' | 'fate' | 'resilience' | 
             const value = selectedSubspecies.value?.[field];
             return value === undefined ? '' : String(value);
         },
-        set: (value: string) => {
+        set: (value: string | number) => {
             setOptionalSubspeciesNumber(field, value);
         },
     });
