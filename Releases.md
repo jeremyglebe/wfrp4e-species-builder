@@ -50,7 +50,7 @@ git push origin main
 
 Create a version tag:
 
-```
+```sh
 git tag v0.1.0
 ```
 
