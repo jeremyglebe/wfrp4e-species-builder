@@ -1,7 +1,8 @@
 import { SpeciesBuilderApplication } from '../apps/SpeciesBuilderApplication';
+import { NPCBuilderApplication } from '../apps/NPCBuilderApplication';
 
 /**
- * Adds a Species Builder launcher button to the settings sidebar tab.
+ * Adds Species Builder and NPC Builder launcher buttons to the settings sidebar tab.
  */
 
 // type aliases
@@ -15,14 +16,29 @@ Hooks.on(
   (app: AbstractSidebarTab<RenderContext, Configuration, RenderOptions>) => {
     if (app.options.id !== 'settings') return;
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = 'Open Species Builder';
+    // Create container for buttons
+    const container = document.createElement('div');
+    container.style.cssText =
+      'display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;';
 
-    button.addEventListener('click', () => {
+    // Species Builder button
+    const speciesButton = document.createElement('button');
+    speciesButton.type = 'button';
+    speciesButton.textContent = 'Species Builder';
+    speciesButton.addEventListener('click', () => {
       new SpeciesBuilderApplication().render(true);
     });
 
-    app.element.appendChild(button);
+    // NPC Builder button
+    const npcButton = document.createElement('button');
+    npcButton.type = 'button';
+    npcButton.textContent = 'NPC Builder';
+    npcButton.addEventListener('click', () => {
+      new NPCBuilderApplication().render(true);
+    });
+
+    container.appendChild(speciesButton);
+    container.appendChild(npcButton);
+    app.element.appendChild(container);
   },
 );

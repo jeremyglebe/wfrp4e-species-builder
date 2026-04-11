@@ -1,5 +1,10 @@
-import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../../types/module';
+import type {
+  CustomSpeciesDefinition,
+  CustomSpeciesSettingsData,
+  NPCBuilderSettings,
+} from '../../types/module';
 import { Data } from './data-service';
+import { getDefaultNPCBuilderSettings } from './npc-builder-settings';
 
 /**
  * Foundry settings boundary for species storage.
@@ -10,11 +15,13 @@ import { Data } from './data-service';
  */
 export const MODULE_ID = 'wfrp4e-species-builder';
 export const CUSTOM_SPECIES_SETTING_KEY = 'customSpeciesDefinitions';
+export const NPC_BUILDER_SETTINGS_KEY = 'npcBuilderSettings';
 export const SETTINGS_SCHEMA_VERSION = 1;
 
 declare global {
   interface SettingConfig {
     'wfrp4e-species-builder.customSpeciesDefinitions': CustomSpeciesSettingsData;
+    'wfrp4e-species-builder.npcBuilderSettings': NPCBuilderSettings;
   }
 }
 
@@ -31,6 +38,14 @@ function register(): void {
     scope: 'world',
     config: false,
     default: Data.Empty.CustomSpeciesSettingsData(),
+  });
+
+  game?.settings?.register(MODULE_ID, NPC_BUILDER_SETTINGS_KEY, {
+    name: 'NPC Builder Settings',
+    hint: 'Internal storage for WFRP4e NPC Builder settings.',
+    scope: 'world',
+    config: false,
+    default: getDefaultNPCBuilderSettings(),
   });
 }
 

@@ -6,3 +6,10 @@ export type { CustomSpeciesSettingsData } from './CustomSpeciesSettingsData';
 export type { CustomSubspeciesDefinition } from './CustomSubspeciesDefinition';
 export type { SpeciesCharacteristics } from './SpeciesCharacteristics';
 export type { SpeciesHeight } from './SpeciesHeight';
+export type {
+  NPCBuilderSettings,
+  BaseActorOption,
+  BaseActorOverride,
+  CareerEntry,
+  IndexedCareer,
+} from './NPCBuilderTypes';
