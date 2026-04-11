@@ -51,8 +51,8 @@
             </div>
           </header>
 
-          <p v-if="selectedValidationError" class="species-builder__error">
-            {{ selectedValidationError }}
+          <p v-if="validationError" class="species-builder__error">
+            {{ validationError }}
           </p>
 
           <section class="species-builder__section species-builder__card">
@@ -128,6 +128,10 @@
             <h3>Traits</h3>
             <textarea v-model="traitsText" rows="5" placeholder="One trait per line" />
           </section>
+
+          <SubspeciesBuilderSection :selected-species="selectedSpecies" :selected-subspecies-id="selectedSubspeciesId"
+            :characteristic-keys="characteristicKeys" @update:selected-subspecies-id="setSelectedSubspeciesId"
+            @validation-change="handleSubspeciesValidationChange" />
         </template>
 
         <template v-else>
@@ -147,6 +151,7 @@
 import { computed, ref, toRaw, watch } from 'vue';
 import type { CustomSpeciesDefinition } from '../../types/module';
 import { Data } from '../../module/services';
+import SubspeciesBuilderSection from './SubspeciesBuilderSection.vue';
 
 const props = defineProps<{
   initialSpecies: CustomSpeciesDefinition[];
@@ -156,6 +161,8 @@ const props = defineProps<{
 const speciesList = ref<CustomSpeciesDefinition[]>(structuredClone(props.initialSpecies));
 const initialSnapshot = ref<string>(serializeSpecies(speciesList.value));
 const selectedSpeciesId = ref<string | null>(speciesList.value[0]?.id ?? null);
+const selectedSubspeciesId = ref<string | null>(null);
+const subspeciesValidationError = ref<string | null>(null);
 const isSaving = ref(false);
 
 const characteristicKeys = ['ws', 'bs', 's', 't', 'i', 'ag', 'dex', 'int', 'wp', 'fel'] as const;
@@ -197,12 +204,16 @@ const selectedValidationError = computed(() => {
   return null;
 });
 
+const validationError = computed(() => {
+  return selectedValidationError.value ?? subspeciesValidationError.value;
+});
+
 const isDirty = computed(() => {
   return serializeSpecies(speciesList.value) !== initialSnapshot.value;
 });
 
 const canSave = computed(() => {
-  return Boolean(selectedSpecies.value) && !selectedValidationError.value && isDirty.value;
+  return Boolean(selectedSpecies.value) && !validationError.value && isDirty.value;
 });
 
 const saveStatusText = computed(() => {
@@ -247,6 +258,7 @@ function addSpecies(): void {
   const newSpecies = Data.Empty.CustomSpeciesDefinition();
   speciesList.value.push(newSpecies);
   selectedSpeciesId.value = newSpecies.id;
+  selectedSubspeciesId.value = null;
 }
 
 async function deleteSelectedSpecies(): Promise<void> {
@@ -295,6 +307,14 @@ function parseLineList(value: string): string[] {
     .split('\n')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+}
+
+function setSelectedSubspeciesId(value: string | null): void {
+  selectedSubspeciesId.value = value;
+}
+
+function handleSubspeciesValidationChange(value: string | null): void {
+  subspeciesValidationError.value = value;
 }
 
 function serializeSpecies(species: CustomSpeciesDefinition[]): string {
@@ -355,6 +375,9 @@ watch(
     if (!speciesList.value.some((species) => species.id === selectedSpeciesId.value)) {
       selectedSpeciesId.value = speciesList.value[0]?.id ?? null;
     }
+
+    selectedSubspeciesId.value = null;
+    subspeciesValidationError.value = null;
   },
 );
 </script>
@@ -674,6 +697,7 @@ watch(
   .species-builder__split-sections {
     grid-template-columns: 1fr;
   }
+
 }
 
 @media (max-width: 620px) {
