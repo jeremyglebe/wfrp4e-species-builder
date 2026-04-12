@@ -24,12 +24,8 @@
       }
     ]
   },
-  "esmodules": [
-    "dist/module.js"
-  ],
-  "styles": [
-    "dist/module.css"
-  ],
+  "esmodules": ["dist/module.js"],
+  "styles": ["dist/app.css"],
   "languages": [
     {
       "lang": "en",

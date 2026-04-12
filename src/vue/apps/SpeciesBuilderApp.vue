@@ -385,6 +385,8 @@ watch(
 </script>
 
 <style scoped>
+@import '../styles/shared.css';
+
 .species-builder {
   --sb-bg: #171310;
   --sb-border: #6f5441;

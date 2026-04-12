@@ -54,7 +54,8 @@ export default defineConfig(({ mode }) => {
         output: {
           assetFileNames: (assetInfo) => {
             if (assetInfo.name?.endsWith('.css')) {
-              return 'dist/module.css';
+              // All CSS files imported somewhere in the app become a single built CSS file
+              return 'dist/app.css';
             }
             return 'assets/[name][extname]';
           },

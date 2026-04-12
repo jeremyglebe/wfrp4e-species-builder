@@ -2,4 +2,6 @@
  * Module bootstrap entrypoint loaded by Foundry.
  */
 import './hooks';
-import '../../styles/module.css';
+
+// Importing the style is needed to include it in the build
+import '../../styles/global.css';
