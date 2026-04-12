@@ -411,6 +411,11 @@ watch(
     var(--sb-bg);
 }
 
+.species-builder :is(input, textarea, button):focus-visible {
+  outline: 2px solid rgb(234 181 98 / 75%);
+  outline-offset: 1px;
+}
+
 .species-builder__layout {
   box-sizing: border-box;
   display: grid;

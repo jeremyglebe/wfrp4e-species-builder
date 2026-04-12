@@ -779,6 +779,11 @@ watch(
   overflow: hidden;
 }
 
+.npc-builder :is(input, textarea, button):focus-visible {
+  outline: 2px solid rgb(234 181 98 / 75%);
+  outline-offset: 1px;
+}
+
 .npc-builder__overlay {
   position: absolute;
   inset: 0;

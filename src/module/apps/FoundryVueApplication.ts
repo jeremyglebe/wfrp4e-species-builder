@@ -17,11 +17,12 @@ export abstract class FoundryVueApplication extends foundry.applications.api.App
   }
 
   protected override async _renderHTML(): Promise<string> {
-    return `<div id="${this.vueRootId}"></div>`;
+    return `<div id="${this.vueRootId}" class="root"></div>`;
   }
 
   protected override _replaceHTML(result: string, content: HTMLElement): void {
     content.innerHTML = result;
+    content.classList.add('vue-app');
   }
 
   protected override async _onRender(): Promise<void> {
