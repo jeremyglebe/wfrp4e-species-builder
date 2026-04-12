@@ -1,27 +1,34 @@
 import type {
+  AggregateItemBuilderSettings,
   CustomSpeciesDefinition,
   CustomSpeciesSettingsData,
+  EffectToItemBuilderSettings,
   NPCBuilderSettings,
-} from '../../types/module';
-import { Data } from './data-service';
-import { getDefaultNPCBuilderSettings } from './npc-builder-settings';
+} from '../../../types/module';
+import { Data } from '../data-service';
+import {
+  AGGREGATE_ITEM_BUILDER_SETTINGS_KEY,
+  getDefaultAggregateItemBuilderSettings,
+} from './aggregate-items';
+import {
+  EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY,
+  getDefaultEffectToItemBuilderSettings,
+} from './effect-items';
+import { getDefaultNPCBuilderSettings, NPC_BUILDER_SETTINGS_KEY } from './npcs';
 
 /**
- * Foundry settings boundary for species storage.
- *
- * This service owns registration and persistence of the module-native model.
- * Stored data remains a cohesive species object array, not WFRP's split
- * runtime shape.
+ * Foundry settings boundary for module storage.
  */
 export const MODULE_ID = 'wfrp4e-species-builder';
 export const CUSTOM_SPECIES_SETTING_KEY = 'customSpeciesDefinitions';
-export const NPC_BUILDER_SETTINGS_KEY = 'npcBuilderSettings';
 export const SETTINGS_SCHEMA_VERSION = 1;
 
 declare global {
   interface SettingConfig {
     'wfrp4e-species-builder.customSpeciesDefinitions': CustomSpeciesSettingsData;
     'wfrp4e-species-builder.npcBuilderSettings': NPCBuilderSettings;
+    'wfrp4e-species-builder.aggregateItemBuilderSettings': AggregateItemBuilderSettings;
+    'wfrp4e-species-builder.effectToItemBuilderSettings': EffectToItemBuilderSettings;
   }
 }
 
@@ -46,6 +53,22 @@ function register(): void {
     scope: 'world',
     config: false,
     default: getDefaultNPCBuilderSettings(),
+  });
+
+  game?.settings?.register(MODULE_ID, AGGREGATE_ITEM_BUILDER_SETTINGS_KEY, {
+    name: 'Aggregate Item Builder Settings',
+    hint: 'Internal storage for WFRP4e Aggregate Item Builder settings.',
+    scope: 'world',
+    config: false,
+    default: getDefaultAggregateItemBuilderSettings(),
+  });
+
+  game?.settings?.register(MODULE_ID, EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY, {
+    name: 'Effect to Item Builder Settings',
+    hint: 'Internal storage for WFRP4e Effect to Item Builder settings.',
+    scope: 'world',
+    config: false,
+    default: getDefaultEffectToItemBuilderSettings(),
   });
 }
 

@@ -1,5 +1,5 @@
 import SpeciesBuilderApp from '../../vue/apps/SpeciesBuilderApp.vue';
-import { Settings } from '../services/settings-service';
+import { Settings } from '../services/settings';
 import { FoundryVueApplication } from './FoundryVueApplication';
 
 /**

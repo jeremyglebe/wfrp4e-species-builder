@@ -13,3 +13,4 @@ export type {
   CareerEntry,
   IndexedCareer,
 } from './NPCBuilderTypes';
+export type { AggregateItemBuilderSettings, EffectToItemBuilderSettings } from './ItemBuilderTypes';

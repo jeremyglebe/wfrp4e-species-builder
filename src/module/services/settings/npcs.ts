@@ -1,4 +1,7 @@
-import type { NPCBuilderSettings } from '../../types/module';
+import type { NPCBuilderSettings } from '../../../types/module';
+import { MODULE_ID } from './species';
+
+export const NPC_BUILDER_SETTINGS_KEY = 'npcBuilderSettings';
 
 /**
  * Default NPC Builder settings.
@@ -14,15 +17,9 @@ export function getDefaultNPCBuilderSettings(): NPCBuilderSettings {
   };
 }
 
-/**
- * Loads NPC Builder settings from Foundry world settings.
- * Falls back to defaults if not found.
- *
- * @returns The loaded settings
- */
 export function loadNPCBuilderSettings(): NPCBuilderSettings {
   const defaultSettings = getDefaultNPCBuilderSettings();
-  const saved = game?.settings?.get('wfrp4e-species-builder', 'npcBuilderSettings') as
+  const saved = game?.settings?.get(MODULE_ID, NPC_BUILDER_SETTINGS_KEY) as
     | Partial<NPCBuilderSettings>
     | undefined;
 
@@ -33,33 +30,14 @@ export function loadNPCBuilderSettings(): NPCBuilderSettings {
   return foundry.utils.mergeObject(defaultSettings, saved) as NPCBuilderSettings;
 }
 
-/**
- * Saves NPC Builder settings to Foundry world settings.
- *
- * @param settings - The settings to save
- */
 export async function saveNPCBuilderSettings(settings: NPCBuilderSettings): Promise<void> {
-  await game?.settings?.set('wfrp4e-species-builder', 'npcBuilderSettings', settings);
+  await game?.settings?.set(MODULE_ID, NPC_BUILDER_SETTINGS_KEY, settings);
 }
 
-/**
- * Normalizes a folder name by trimming whitespace and converting to string.
- * Returns an empty string for null/undefined inputs.
- *
- * @param name - The folder name to normalize
- * @returns The normalized folder name
- */
 export function normalizeFolderName(name: unknown): string {
   return String(name ?? '').trim();
 }
 
-/**
- * Searches for an existing actor folder by name.
- * The search is case-sensitive and looks for exact name matches.
- *
- * @param name - The exact name of the folder to find
- * @returns The folder object if found, or null if not found or name is empty
- */
 export function getActorFolderByName(name: string): Folder | null {
   const normalizedName = normalizeFolderName(name);
   if (!normalizedName) {
@@ -73,26 +51,17 @@ export function getActorFolderByName(name: string): Folder | null {
   return (foundFolder as Folder) ?? null;
 }
 
-/**
- * Gets an existing actor folder by name, or creates it if it doesn't exist.
- * Created folders have black color (#000000) by default.
- *
- * @param name - The desired folder name
- * @returns The existing or newly created folder, or null if name is empty
- */
 export async function getOrCreateActorFolderByName(name: string): Promise<Folder | null> {
   const normalizedName = normalizeFolderName(name);
   if (!normalizedName) {
     return null;
   }
 
-  // Check if the folder already exists
   const existingFolder = getActorFolderByName(normalizedName);
   if (existingFolder) {
     return existingFolder;
   }
 
-  // Folder doesn't exist, so create it
   const newFolder = (await Folder.create({
     name: normalizedName,
     type: 'Actor',

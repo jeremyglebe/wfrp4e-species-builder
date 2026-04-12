@@ -253,7 +253,7 @@ import {
   loadNPCBuilderSettings,
   normalizeFolderName,
   saveNPCBuilderSettings,
-} from '../../module/services/npc-builder-settings';
+} from '../../module/services/settings/npcs';
 import { buildFinalName, getSpeciesName } from '../../module/services/npc-builder-naming';
 import { CareerIndexService } from '../../module/services/career-index-service';
 

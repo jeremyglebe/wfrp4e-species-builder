@@ -6,6 +6,10 @@
   --npc-builder-focus-outline: 2px solid rgb(234 181 98 / 75%);
 }
 
+.item-builder.application {
+  --item-builder-focus-outline: 2px solid rgb(234 181 98 / 75%);
+}
+
 #wfrp4e-species-builder-app .window-content {
   position: relative;
   box-sizing: border-box;
@@ -14,6 +18,14 @@
 }
 
 #wfrp4e-npc-builder-app .window-content {
+  position: relative;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: hidden;
+}
+
+#wfrp4e-aggregate-item-builder-app .window-content,
+#wfrp4e-effect-to-item-builder-app .window-content {
   position: relative;
   box-sizing: border-box;
   padding: 0;
@@ -42,6 +54,19 @@
   min-height: 0;
 }
 
+#wfrp4e-aggregate-item-builder-root,
+#wfrp4e-effect-to-item-builder-root {
+  position: absolute;
+  inset: 15px;
+  box-sizing: border-box;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+
 .species-builder.application :is(input, textarea, button):focus-visible {
   outline: var(--species-builder-focus-outline);
   outline-offset: 1px;
@@ -49,5 +74,10 @@
 
 .npc-builder.application :is(input, textarea, button):focus-visible {
   outline: var(--npc-builder-focus-outline);
+  outline-offset: 1px;
+}
+
+.item-builder.application :is(input, textarea, button):focus-visible {
+  outline: var(--item-builder-focus-outline);
   outline-offset: 1px;
 }

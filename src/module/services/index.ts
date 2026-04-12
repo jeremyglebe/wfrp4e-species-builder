@@ -7,5 +7,5 @@ export {
   MODULE_ID,
   SETTINGS_SCHEMA_VERSION,
   Settings,
-} from './settings-service';
+} from './settings';
 export { Injection } from './injection-service';
