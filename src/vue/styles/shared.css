@@ -1,10 +1,1 @@
 /* Styles that are shared across multiple Vue components. */
-
-/* Import Tailwind and DaisyUI here
-rather than in global.css, to avoid overriding Foundry & WFRP4e's styles. */
-@import 'tailwindcss';
-@plugin 'daisyui';
-
-button {
-  background-color: red !important;
-}
