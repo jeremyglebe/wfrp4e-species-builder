@@ -4,21 +4,26 @@
   This will override (and likely break!) Foundry's UI if not used carefully.
 */
 
+/* This style is applied to the "window content" container Foundry renders AppV2 into */
 .vue-app {
   position: relative;
   box-sizing: border-box;
   padding: 0;
+  /* don't show anything beyond the window border */
   overflow: hidden;
 }
 
+/* This style is applied to the root element inside the container that AppV2 is rendered into */
 .vue-app > .root {
-  position: absolute;
-  inset: 15px;
   box-sizing: border-box;
   display: block;
+  /* fills the full space of the container */
+  position: absolute;
   width: auto;
   height: auto;
   max-width: 100%;
   max-height: 100%;
   min-height: 0;
+  /* ensures that Foundry's window frame shows around the content */
+  inset: 15px;
 }

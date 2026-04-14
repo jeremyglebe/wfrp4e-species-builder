@@ -14,8 +14,14 @@
         </div>
 
         <div class="species-builder__species-list">
-          <button v-for="species in speciesList" :key="species.id" type="button" class="species-builder__species-item"
-            :class="{ 'is-selected': selectedSpeciesId === species.id }" @click="selectSpecies(species.id)">
+          <button
+            v-for="species in speciesList"
+            :key="species.id"
+            type="button"
+            class="species-builder__species-item"
+            :class="{ 'is-selected': selectedSpeciesId === species.id }"
+            @click="selectSpecies(species.id)"
+          >
             <div class="species-builder__species-topline">
               <strong>{{ species.name || 'Unnamed Species' }}</strong>
               <span class="species-builder__species-id">{{ species.id || 'missing-id' }}</span>
@@ -40,12 +46,20 @@
             </div>
 
             <div class="species-builder__editor-actions">
-              <button type="button" class="species-builder__button species-builder__button--ghost" :disabled="isSaving"
-                @click="deleteSelectedSpecies">
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--ghost"
+                :disabled="isSaving"
+                @click="deleteSelectedSpecies"
+              >
                 Delete
               </button>
-              <button type="button" class="species-builder__button species-builder__button--primary"
-                :disabled="isSaving || !canSave" @click="save">
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--primary"
+                :disabled="isSaving || !canSave"
+                @click="save"
+              >
                 Save
               </button>
             </div>
@@ -129,9 +143,65 @@
             <textarea v-model="traitsText" rows="5" placeholder="One trait per line" />
           </section>
 
-          <SubspeciesBuilderSection :selected-species="selectedSpecies" :selected-subspecies-id="selectedSubspeciesId"
-            :characteristic-keys="characteristicKeys" @update:selected-subspecies-id="setSelectedSubspeciesId"
-            @validation-change="handleSubspeciesValidationChange" />
+          <section class="species-builder__section species-builder__card">
+            <div class="species-builder__subspecies-header">
+              <div>
+                <p class="species-builder__eyebrow">Variants</p>
+                <h3>Subspecies</h3>
+              </div>
+
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--primary"
+                @click="addSubspecies"
+              >
+                Add Subspecies
+              </button>
+            </div>
+
+            <div v-if="selectedSpeciesSubspecies.length > 0" class="species-builder__subspecies-list">
+              <button
+                v-for="subspecies in selectedSpeciesSubspecies"
+                :key="subspecies.id"
+                type="button"
+                class="species-builder__species-item"
+                :class="{ 'is-selected': selectedSubspeciesId === subspecies.id }"
+                @click="openSubspeciesBuilder(subspecies.id)"
+              >
+                <div class="species-builder__species-topline">
+                  <strong>{{ subspecies.name || 'Unnamed Subspecies' }}</strong>
+                  <span class="species-builder__species-id">{{ subspecies.id || 'missing-id' }}</span>
+                </div>
+              </button>
+            </div>
+
+            <div v-else class="species-builder__empty-state">
+              <p>No subspecies created yet.</p>
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--primary"
+                @click="addSubspecies"
+              >
+                Create First Subspecies
+              </button>
+            </div>
+          </section>
+
+          <DrilldownPanel
+            :show="isSubspeciesBuilderOpen"
+            :title="selectedSubspecies?.name || 'Subspecies Builder'"
+            @update:show="handleSubspeciesBuilderShowChange"
+            @back="handleSubspeciesBuilderBack"
+          >
+            <SubspeciesBuilderModal
+              v-if="selectedSpecies && selectedSubspecies"
+              :selected-species="selectedSpecies"
+              :selected-subspecies="selectedSubspecies"
+              :characteristic-keys="characteristicKeys"
+              @delete="deleteSelectedSubspecies"
+              @validation-change="handleSubspeciesValidationChange"
+            />
+          </DrilldownPanel>
         </template>
 
         <template v-else>
@@ -149,9 +219,10 @@
 
 <script setup lang="ts">
 import { computed, ref, toRaw, watch } from 'vue';
-import type { CustomSpeciesDefinition } from '../../types/module';
+import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../types/module';
 import { Data } from '../../module/services';
-import SubspeciesBuilderSection from './SubspeciesBuilderSection.vue';
+import DrilldownPanel from '../components/DrilldownPanel.vue';
+import SubspeciesBuilderModal from '../modals/SubspeciesBuilderModal.vue';
 
 const props = defineProps<{
   initialSpecies: CustomSpeciesDefinition[];
@@ -163,6 +234,7 @@ const speciesList = ref<CustomSpeciesDefinition[]>(structuredClone(props.initial
 const initialSnapshot = ref<string>(serializeSpecies(speciesList.value));
 const selectedSpeciesId = ref<string | null>(speciesList.value[0]?.id ?? null);
 const selectedSubspeciesId = ref<string | null>(null);
+const isSubspeciesBuilderOpen = ref(false);
 const subspeciesValidationError = ref<string | null>(null);
 const isSaving = ref(false);
 
@@ -170,6 +242,14 @@ const characteristicKeys = ['ws', 'bs', 's', 't', 'i', 'ag', 'dex', 'int', 'wp',
 
 const selectedSpecies = computed(() => {
   return speciesList.value.find((species) => species.id === selectedSpeciesId.value) ?? null;
+});
+
+const selectedSpeciesSubspecies = computed(() => {
+  return Object.values(selectedSpecies.value?.subspecies ?? {});
+});
+
+const selectedSubspecies = computed<CustomSubspeciesDefinition | null>(() => {
+  return selectedSpeciesSubspecies.value.find((subspecies) => subspecies.id === selectedSubspeciesId.value) ?? null;
 });
 
 const duplicateIds = computed(() => {
@@ -248,6 +328,8 @@ const traitsText = computed({
 
 function selectSpecies(speciesId: string): void {
   selectedSpeciesId.value = speciesId;
+  selectedSubspeciesId.value = null;
+  closeSubspeciesBuilder();
 }
 
 function syncSelectedSpeciesId(): void {
@@ -260,6 +342,60 @@ function addSpecies(): void {
   speciesList.value.push(newSpecies);
   selectedSpeciesId.value = newSpecies.id;
   selectedSubspeciesId.value = null;
+  closeSubspeciesBuilder();
+}
+
+function ensureSelectedSpeciesSubspecies(): Record<string, CustomSubspeciesDefinition> {
+  if (!selectedSpecies.value) {
+    throw new Error('No species selected.');
+  }
+
+  if (!selectedSpecies.value.subspecies) {
+    selectedSpecies.value.subspecies = {};
+  }
+
+  return selectedSpecies.value.subspecies;
+}
+
+function openSubspeciesBuilder(subspeciesId: string): void {
+  selectedSubspeciesId.value = subspeciesId;
+  isSubspeciesBuilderOpen.value = true;
+}
+
+function addSubspecies(): void {
+  const subspeciesRecord = ensureSelectedSpeciesSubspecies();
+  const newSubspecies = Data.Empty.CustomSubspeciesDefinition();
+
+  subspeciesRecord[newSubspecies.id] = newSubspecies;
+  selectedSubspeciesId.value = newSubspecies.id;
+  isSubspeciesBuilderOpen.value = true;
+}
+
+function closeSubspeciesBuilder(): void {
+  isSubspeciesBuilderOpen.value = false;
+}
+
+function handleSubspeciesBuilderShowChange(value: boolean): void {
+  isSubspeciesBuilderOpen.value = value;
+}
+
+function handleSubspeciesBuilderBack(): void {
+  closeSubspeciesBuilder();
+}
+
+function handleSubspeciesValidationChange(value: string | null): void {
+  subspeciesValidationError.value = value;
+}
+
+function deleteSelectedSubspecies(): void {
+  if (!selectedSpecies.value || !selectedSubspeciesId.value) return;
+
+  const subspeciesRecord = ensureSelectedSpeciesSubspecies();
+  delete subspeciesRecord[selectedSubspeciesId.value];
+
+  const remainingSubspecies = Object.values(subspeciesRecord);
+  selectedSubspeciesId.value = remainingSubspecies[0]?.id ?? null;
+  closeSubspeciesBuilder();
 }
 
 async function deleteSelectedSpecies(): Promise<void> {
@@ -287,6 +423,9 @@ async function deleteSelectedSpecies(): Promise<void> {
     selectedSpeciesId.value = nextSpecies?.id ?? null;
   }
 
+  selectedSubspeciesId.value = null;
+  closeSubspeciesBuilder();
+
   try {
     await persistSpeciesToStorage('Species deleted. Reload the world to rebuild WFRP species config.');
   } catch (error) {
@@ -308,14 +447,6 @@ function parseLineList(value: string): string[] {
     .split('\n')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-}
-
-function setSelectedSubspeciesId(value: string | null): void {
-  selectedSubspeciesId.value = value;
-}
-
-function handleSubspeciesValidationChange(value: string | null): void {
-  subspeciesValidationError.value = value;
 }
 
 function serializeSpecies(species: CustomSpeciesDefinition[]): string {
@@ -379,12 +510,32 @@ watch(
     }
 
     selectedSubspeciesId.value = null;
+    closeSubspeciesBuilder();
     subspeciesValidationError.value = null;
   },
+);
+
+watch(
+  () => selectedSpeciesId.value,
+  () => {
+    const subspecies = selectedSpeciesSubspecies.value;
+
+    if (subspecies.length === 0) {
+      selectedSubspeciesId.value = null;
+      closeSubspeciesBuilder();
+      return;
+    }
+
+    if (!subspecies.some((entry) => entry.id === selectedSubspeciesId.value)) {
+      selectedSubspeciesId.value = subspecies[0]?.id ?? null;
+    }
+  },
+  { immediate: true },
 );
 </script>
 
 <style scoped>
+
 @import '../styles/shared.css';
 
 .species-builder {
@@ -713,5 +864,22 @@ watch(
   .species-builder__form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.species-builder__subspecies-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.species-builder__subspecies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 520px;
+  overflow: auto;
 }
 </style>
