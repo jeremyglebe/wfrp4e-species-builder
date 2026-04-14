@@ -1,34 +1,34 @@
 <template>
-  <Transition name="drilldown-panel">
-    <section v-if="show" class="drilldown-panel">
-      <header class="drilldown-panel__header">
-        <div class="drilldown-panel__header-left">
+  <Transition name="subview-panel">
+    <section v-if="show" class="subview-panel">
+      <header class="subview-panel__header">
+        <div class="subview-panel__header-left">
           <button
             v-if="showBackButton"
             type="button"
-            class="drilldown-panel__button"
+            class="subview-panel__button"
             @click="handleBack"
           >
             ← Back
           </button>
 
-          <div class="drilldown-panel__title-wrap">
-            <p v-if="eyebrow" class="drilldown-panel__eyebrow">{{ eyebrow }}</p>
-            <h2 v-if="title" class="drilldown-panel__title">{{ title }}</h2>
+          <div class="subview-panel__title-wrap">
+            <p v-if="eyebrow" class="subview-panel__eyebrow">{{ eyebrow }}</p>
+            <h2 v-if="title" class="subview-panel__title">{{ title }}</h2>
           </div>
         </div>
 
         <button
           v-if="showCloseButton"
           type="button"
-          class="drilldown-panel__button drilldown-panel__button--ghost"
+          class="subview-panel__button subview-panel__button--ghost"
           @click="handleClose"
         >
           Close
         </button>
       </header>
 
-      <div class="drilldown-panel__body">
+      <div class="subview-panel__body">
         <slot />
       </div>
     </section>
@@ -71,7 +71,7 @@ function handleClose(): void {
 </script>
 
 <style scoped lang="scss">
-.drilldown-panel {
+.subview-panel {
   position: absolute;
   inset: 0;
   z-index: 10;
@@ -136,7 +136,10 @@ function handleClose(): void {
     letter-spacing: 0.02em;
     color: #27190f;
     background: linear-gradient(180deg, #e8ba72, #c28a3d);
-    transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      filter 0.15s ease,
+      border-color 0.15s ease;
 
     &:hover {
       transform: translateY(-1px);
@@ -151,19 +154,21 @@ function handleClose(): void {
   }
 }
 
-.drilldown-panel-enter-active,
-.drilldown-panel-leave-active {
-  transition: transform 180ms ease, opacity 180ms ease;
+.subview-panel-enter-active,
+.subview-panel-leave-active {
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
-.drilldown-panel-enter-from,
-.drilldown-panel-leave-to {
+.subview-panel-enter-from,
+.subview-panel-leave-to {
   transform: translateX(24px);
   opacity: 0;
 }
 
-.drilldown-panel-enter-to,
-.drilldown-panel-leave-from {
+.subview-panel-enter-to,
+.subview-panel-leave-from {
   transform: translateX(0);
   opacity: 1;
 }

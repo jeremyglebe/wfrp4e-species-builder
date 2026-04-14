@@ -1,4 +1,4 @@
-import SpeciesBuilderApp from '../../vue/apps/SpeciesBuilderApp.vue';
+import SpeciesBuilderApp from '../../vue/apps/species-builder/SpeciesBuilderApp.vue';
 import { Settings } from '../services/settings';
 import { FoundryVueApplication } from './FoundryVueApplication';
 

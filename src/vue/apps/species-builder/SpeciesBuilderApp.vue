@@ -8,7 +8,11 @@
             <h2>Species</h2>
           </div>
 
-          <button type="button" class="species-builder__button species-builder__button--primary" @click="addSpecies">
+          <button
+            type="button"
+            class="species-builder__button species-builder__button--primary"
+            @click="addSpecies"
+          >
             Add Species
           </button>
         </div>
@@ -42,7 +46,9 @@
             <div>
               <p class="species-builder__eyebrow">Builder</p>
               <h2>{{ selectedSpecies.name || 'Unnamed Species' }}</h2>
-              <p class="species-builder__status" :class="{ 'is-dirty': isDirty }">{{ saveStatusText }}</p>
+              <p class="species-builder__status" :class="{ 'is-dirty': isDirty }">
+                {{ saveStatusText }}
+              </p>
             </div>
 
             <div class="species-builder__editor-actions">
@@ -159,7 +165,10 @@
               </button>
             </div>
 
-            <div v-if="selectedSpeciesSubspecies.length > 0" class="species-builder__subspecies-list">
+            <div
+              v-if="selectedSpeciesSubspecies.length > 0"
+              class="species-builder__subspecies-list"
+            >
               <button
                 v-for="subspecies in selectedSpeciesSubspecies"
                 :key="subspecies.id"
@@ -170,7 +179,9 @@
               >
                 <div class="species-builder__species-topline">
                   <strong>{{ subspecies.name || 'Unnamed Subspecies' }}</strong>
-                  <span class="species-builder__species-id">{{ subspecies.id || 'missing-id' }}</span>
+                  <span class="species-builder__species-id">{{
+                    subspecies.id || 'missing-id'
+                  }}</span>
                 </div>
               </button>
             </div>
@@ -187,13 +198,13 @@
             </div>
           </section>
 
-          <DrilldownPanel
+          <SubView
             :show="isSubspeciesBuilderOpen"
             :title="selectedSubspecies?.name || 'Subspecies Builder'"
             @update:show="handleSubspeciesBuilderShowChange"
             @back="handleSubspeciesBuilderBack"
           >
-            <SubspeciesBuilderModal
+            <SubspeciesBuilder
               v-if="selectedSpecies && selectedSubspecies"
               :selected-species="selectedSpecies"
               :selected-subspecies="selectedSubspecies"
@@ -201,13 +212,17 @@
               @delete="deleteSelectedSubspecies"
               @validation-change="handleSubspeciesValidationChange"
             />
-          </DrilldownPanel>
+          </SubView>
         </template>
 
         <template v-else>
           <div class="species-builder__empty-state species-builder__card">
             <p>No species selected.</p>
-            <button type="button" class="species-builder__button species-builder__button--primary" @click="addSpecies">
+            <button
+              type="button"
+              class="species-builder__button species-builder__button--primary"
+              @click="addSpecies"
+            >
               Create First Species
             </button>
           </div>
@@ -219,10 +234,10 @@
 
 <script setup lang="ts">
 import { computed, ref, toRaw, watch } from 'vue';
-import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../types/module';
-import { Data } from '../../module/services';
-import DrilldownPanel from '../components/DrilldownPanel.vue';
-import SubspeciesBuilderModal from '../modals/SubspeciesBuilderModal.vue';
+import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../../types/module';
+import { Data } from '../../../module/services';
+import SubView from '../../components/SubView.vue';
+import SubspeciesBuilder from './subviews/SubspeciesBuilder.vue';
 
 const props = defineProps<{
   initialSpecies: CustomSpeciesDefinition[];
@@ -249,7 +264,11 @@ const selectedSpeciesSubspecies = computed(() => {
 });
 
 const selectedSubspecies = computed<CustomSubspeciesDefinition | null>(() => {
-  return selectedSpeciesSubspecies.value.find((subspecies) => subspecies.id === selectedSubspeciesId.value) ?? null;
+  return (
+    selectedSpeciesSubspecies.value.find(
+      (subspecies) => subspecies.id === selectedSubspeciesId.value,
+    ) ?? null
+  );
 });
 
 const duplicateIds = computed(() => {
@@ -427,7 +446,9 @@ async function deleteSelectedSpecies(): Promise<void> {
   closeSubspeciesBuilder();
 
   try {
-    await persistSpeciesToStorage('Species deleted. Reload the world to rebuild WFRP species config.');
+    await persistSpeciesToStorage(
+      'Species deleted. Reload the world to rebuild WFRP species config.',
+    );
   } catch (error) {
     speciesList.value = previousSpecies;
     selectedSpeciesId.value = previousSelectedSpeciesId;
@@ -487,7 +508,9 @@ async function requestDeleteConfirmation(speciesName: string): Promise<boolean> 
     return Boolean(result);
   }
 
-  return window.confirm(`Delete ${speciesName || 'Unnamed Species'}? This change is saved immediately.`);
+  return window.confirm(
+    `Delete ${speciesName || 'Unnamed Species'}? This change is saved immediately.`,
+  );
 }
 
 function escapeHtml(value: string): string {
@@ -535,8 +558,7 @@ watch(
 </script>
 
 <style scoped>
-
-@import '../styles/shared.css';
+@import '../../styles/shared.css';
 
 .species-builder {
   --sb-bg: #171310;
@@ -558,8 +580,7 @@ watch(
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
   background:
     radial-gradient(circle at top right, rgb(189 130 47 / 16%), transparent 48%),
-    radial-gradient(circle at bottom left, rgb(179 103 68 / 12%), transparent 42%),
-    var(--sb-bg);
+    radial-gradient(circle at bottom left, rgb(179 103 68 / 12%), transparent 42%), var(--sb-bg);
 }
 
 .species-builder :is(input, textarea, button):focus-visible {
@@ -650,7 +671,10 @@ watch(
   color: var(--sb-text);
   background: linear-gradient(180deg, rgb(103 73 52 / 22%), rgb(44 33 26 / 75%));
   cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .species-builder__species-item strong,
@@ -792,7 +816,10 @@ watch(
   font: inherit;
   font-weight: 600;
   letter-spacing: 0.02em;
-  transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .species-builder__button:disabled {
@@ -857,7 +884,6 @@ watch(
   .species-builder__split-sections {
     grid-template-columns: 1fr;
   }
-
 }
 
 @media (max-width: 620px) {
@@ -865,7 +891,6 @@ watch(
     grid-template-columns: 1fr;
   }
 }
-
 
 .species-builder__subspecies-header {
   display: flex;

@@ -52,8 +52,15 @@
       </button>
     </div>
 
-    <div v-if="subspeciesHasCharacteristicsOverride" class="species-builder__form-grid species-builder__characteristics-grid">
-      <label v-for="key in characteristicKeys" :key="`subspecies-${key}`" class="species-builder__field">
+    <div
+      v-if="subspeciesHasCharacteristicsOverride"
+      class="species-builder__form-grid species-builder__characteristics-grid"
+    >
+      <label
+        v-for="key in characteristicKeys"
+        :key="`subspecies-${key}`"
+        class="species-builder__field"
+      >
         <span>{{ key.toUpperCase() }}</span>
         <input v-model="selectedSubspecies.characteristics![key]" type="text" />
       </label>
@@ -62,22 +69,38 @@
     <div class="species-builder__split-sections">
       <section class="species-builder__section species-builder__card">
         <h3>Skills Override</h3>
-        <textarea v-model="subspeciesSkillsText" rows="5" placeholder="Leave blank to use species skills" />
+        <textarea
+          v-model="subspeciesSkillsText"
+          rows="5"
+          placeholder="Leave blank to use species skills"
+        />
       </section>
 
       <section class="species-builder__section species-builder__card">
         <h3>Talents Override</h3>
-        <textarea v-model="subspeciesTalentsText" rows="5" placeholder="Leave blank to use species talents" />
+        <textarea
+          v-model="subspeciesTalentsText"
+          rows="5"
+          placeholder="Leave blank to use species talents"
+        />
       </section>
     </div>
 
     <section class="species-builder__section species-builder__card">
       <h3>Traits Override</h3>
-      <textarea v-model="subspeciesTraitsText" rows="4" placeholder="Leave blank to use species traits" />
+      <textarea
+        v-model="subspeciesTraitsText"
+        rows="4"
+        placeholder="Leave blank to use species traits"
+      />
     </section>
 
     <div class="species-builder__drilldown-actions">
-      <button type="button" class="species-builder__button species-builder__button--ghost" @click="$emit('delete')">
+      <button
+        type="button"
+        class="species-builder__button species-builder__button--ghost"
+        @click="$emit('delete')"
+      >
         Delete Subspecies
       </button>
     </div>
@@ -90,7 +113,7 @@ import type {
   CustomSpeciesDefinition,
   CustomSubspeciesDefinition,
   SpeciesCharacteristics,
-} from '../../types/module';
+} from '../../../../types/module';
 
 const props = defineProps<{
   selectedSpecies: CustomSpeciesDefinition;
@@ -150,7 +173,9 @@ const subspeciesExtraText = makeOptionalNumberComputed('extra');
 
 function enableSubspeciesCharacteristicsOverride(): void {
   if (!props.selectedSubspecies) return;
-  props.selectedSubspecies.characteristics = structuredClone(toRaw(props.selectedSpecies.characteristics));
+  props.selectedSubspecies.characteristics = structuredClone(
+    toRaw(props.selectedSpecies.characteristics),
+  );
 }
 
 function clearSubspeciesCharacteristicsOverride(): void {
@@ -317,7 +342,10 @@ watch(
   font: inherit;
   font-weight: 600;
   letter-spacing: 0.02em;
-  transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .species-builder__button:not(:disabled):hover {
