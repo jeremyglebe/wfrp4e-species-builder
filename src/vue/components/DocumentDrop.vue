@@ -5,45 +5,55 @@ type FoundryDragData = Record<string, unknown> & {
   type?: string;
   uuid?: string;
   id?: string;
+  pack?: string;
 };
+
+type DroppedDocument = ClientDocument | null;
+
+interface DocumentDropPayload {
+  dragData: FoundryDragData;
+  document: DroppedDocument;
+}
 
 const props = withDefaults(
   defineProps<{
     label?: string;
-    acceptedTypes?: string[];
+    acceptedDragTypes?: string[];
+    resolveDocument?: boolean;
     disabled?: boolean;
   }>(),
   {
     label: 'Drop document here',
-    acceptedTypes: () => [],
+    acceptedDragTypes: () => [],
+    resolveDocument: false,
     disabled: false,
   },
 );
 
 const emit = defineEmits<{
-  (e: 'drop-document', data: FoundryDragData): void;
-  (e: 'drop-invalid', data: FoundryDragData | null): void;
+  (e: 'drop-document', payload: DocumentDropPayload): void;
+  (e: 'drop-invalid', payload: { dragData: FoundryDragData | null; reason: string }): void;
 }>();
 
 const isDragging = ref(false);
 
 const helpText = computed(() => {
-  if (!props.acceptedTypes.length) return props.label;
-  return `${props.label} (${props.acceptedTypes.join(', ')})`;
+  if (!props.acceptedDragTypes.length) return props.label;
+  return `${props.label} (${props.acceptedDragTypes.join(', ')})`;
 });
 
-function onDragEnter(event: DragEvent) {
+function onDragEnter(event: DragEvent): void {
   if (props.disabled) return;
   event.preventDefault();
   isDragging.value = true;
 }
 
-function onDragOver(event: DragEvent) {
+function onDragOver(event: DragEvent): void {
   if (props.disabled) return;
   event.preventDefault();
 }
 
-function onDragLeave(event: DragEvent) {
+function onDragLeave(event: DragEvent): void {
   if (props.disabled) return;
 
   const currentTarget = event.currentTarget as HTMLElement | null;
@@ -56,7 +66,7 @@ function onDragLeave(event: DragEvent) {
   isDragging.value = false;
 }
 
-function onDrop(event: DragEvent) {
+async function onDrop(event: DragEvent): Promise<void> {
   if (props.disabled) return;
 
   event.preventDefault();
@@ -65,24 +75,48 @@ function onDrop(event: DragEvent) {
   const dragData = getFoundryDragData(event);
 
   if (!dragData) {
-    emit('drop-invalid', null);
+    emit('drop-invalid', {
+      dragData: null,
+      reason: 'Could not read drag data.',
+    });
     return;
   }
 
-  if (props.acceptedTypes.length > 0) {
+  if (props.acceptedDragTypes.length > 0) {
     const droppedType = String(dragData.type ?? '');
-    if (!props.acceptedTypes.includes(droppedType)) {
-      emit('drop-invalid', dragData);
+
+    if (!props.acceptedDragTypes.includes(droppedType)) {
+      emit('drop-invalid', {
+        dragData,
+        reason: `Unsupported drag type: ${droppedType || 'unknown'}`,
+      });
       return;
     }
   }
 
-  emit('drop-document', dragData);
+  const document = props.resolveDocument ? await resolveDroppedDocument(dragData) : null;
+
+  emit('drop-document', {
+    dragData,
+    document,
+  });
 }
 
 function getFoundryDragData(event: DragEvent): FoundryDragData | null {
   try {
     return TextEditor.getDragEventData(event) as FoundryDragData;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveDroppedDocument(dragData: FoundryDragData): Promise<DroppedDocument> {
+  const uuid = String(dragData.uuid ?? '').trim();
+  if (!uuid) return null;
+
+  try {
+    const resolved = await fromUuid(uuid);
+    return (resolved as DroppedDocument) ?? null;
   } catch {
     return null;
   }
@@ -118,7 +152,7 @@ function getFoundryDragData(event: DragEvent): FoundryDragData | null {
     background 140ms ease;
 
   &.is-dragging {
-    border-color: rgb(255 255 255 / 30%);
+    border-color: rgb(255 255 255 / 28%);
     background: rgb(255 255 255 / 6%);
   }
 
@@ -129,7 +163,6 @@ function getFoundryDragData(event: DragEvent): FoundryDragData | null {
 
   &__label {
     margin: 0;
-    font-size: 0.95rem;
   }
 }
 </style>

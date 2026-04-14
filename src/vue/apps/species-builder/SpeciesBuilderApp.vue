@@ -86,7 +86,7 @@
 
               <label class="species-builder__field">
                 <span>ID</span>
-                <input v-model="selectedSpecies.id" type="text" @input="syncSelectedSpeciesId" />
+                <input v-model="selectedSpeciesIdDraft" type="text" />
               </label>
 
               <label class="species-builder__field">
@@ -135,17 +135,35 @@
           <div class="species-builder__split-sections">
             <section class="species-builder__section species-builder__card">
               <h3>Skills</h3>
+              <DocumentDrop
+                label="Drop skill items here"
+                :accepted-drag-types="['Item']"
+                :resolve-document="true"
+                @drop-document="handleSpeciesDocumentDrop('skills', $event)"
+              />
               <textarea v-model="skillsText" rows="7" placeholder="One skill per line" />
             </section>
 
             <section class="species-builder__section species-builder__card">
               <h3>Talents</h3>
+              <DocumentDrop
+                label="Drop talent items here"
+                :accepted-drag-types="['Item']"
+                :resolve-document="true"
+                @drop-document="handleSpeciesDocumentDrop('talents', $event)"
+              />
               <textarea v-model="talentsText" rows="7" placeholder="One talent per line" />
             </section>
           </div>
 
           <section class="species-builder__section species-builder__card">
             <h3>Traits</h3>
+            <DocumentDrop
+              label="Drop trait items here"
+              :accepted-drag-types="['Item']"
+              :resolve-document="true"
+              @drop-document="handleSpeciesDocumentDrop('traits', $event)"
+            />
             <textarea v-model="traitsText" rows="5" placeholder="One trait per line" />
           </section>
 
@@ -208,7 +226,9 @@
               v-if="selectedSpecies && selectedSubspecies"
               :selected-species="selectedSpecies"
               :selected-subspecies="selectedSubspecies"
+              :selected-subspecies-id-draft="selectedSubspeciesIdDraft"
               :characteristic-keys="characteristicKeys"
+              @update:selected-subspecies-id-draft="selectedSubspeciesIdDraft = $event"
               @delete="deleteSelectedSubspecies"
               @validation-change="handleSubspeciesValidationChange"
             />
@@ -237,6 +257,7 @@ import { computed, ref, toRaw, watch } from 'vue';
 import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../../types/module';
 import { Data } from '../../../module/services';
 import SubView from '../../components/SubView.vue';
+import DocumentDrop from '../../components/DocumentDrop.vue';
 import SubspeciesBuilder from './subviews/SubspeciesBuilder.vue';
 
 const props = defineProps<{
@@ -249,6 +270,8 @@ const speciesList = ref<CustomSpeciesDefinition[]>(structuredClone(props.initial
 const initialSnapshot = ref<string>(serializeSpecies(speciesList.value));
 const selectedSpeciesId = ref<string | null>(speciesList.value[0]?.id ?? null);
 const selectedSubspeciesId = ref<string | null>(null);
+const selectedSpeciesIdDraft = ref<string>('');
+const selectedSubspeciesIdDraft = ref<string>('');
 const isSubspeciesBuilderOpen = ref(false);
 const subspeciesValidationError = ref<string | null>(null);
 const isSaving = ref(false);
@@ -275,7 +298,7 @@ const duplicateIds = computed(() => {
   const counts = new Map<string, number>();
 
   for (const species of speciesList.value) {
-    const normalizedId = species.id.trim();
+    const normalizedId = (species.id === selectedSpecies.value?.id ? selectedSpeciesIdDraft.value : species.id).trim();
     if (!normalizedId) continue;
 
     counts.set(normalizedId, (counts.get(normalizedId) ?? 0) + 1);
@@ -291,7 +314,7 @@ const selectedValidationError = computed(() => {
     return 'Name is required.';
   }
 
-  const normalizedId = selectedSpecies.value.id.trim();
+  const normalizedId = selectedSpeciesIdDraft.value.trim();
 
   if (!normalizedId) {
     return 'ID is required.';
@@ -345,15 +368,56 @@ const traitsText = computed({
   },
 });
 
+interface DocumentDropPayload {
+  dragData: Record<string, unknown>;
+  document: ClientDocument | null;
+}
+
+function appendUniqueString(target: string[] | undefined, value: string): string[] {
+  const normalized = value.trim();
+  if (!normalized) return target ?? [];
+
+  const existing = target ?? [];
+  if (existing.includes(normalized)) return existing;
+
+  return [...existing, normalized];
+}
+
+function getDroppedItemName(document: ClientDocument | null): string | null {
+  if (!document || !('name' in document)) return null;
+  return String(document.name ?? '').trim() || null;
+}
+
+function getDroppedItemType(document: ClientDocument | null): string | null {
+  if (!document || !('type' in document)) return null;
+  return String(document.type ?? '').trim() || null;
+}
+
+function handleSpeciesDocumentDrop(
+  target: 'skills' | 'talents' | 'traits',
+  payload: DocumentDropPayload,
+): void {
+  if (!selectedSpecies.value || !payload.document) return;
+
+  const itemName = getDroppedItemName(payload.document);
+  const itemType = getDroppedItemType(payload.document);
+
+  if (!itemName || !itemType) return;
+
+  const allowedType = target === 'skills' ? 'skill' : target === 'talents' ? 'talent' : 'trait';
+
+  if (itemType !== allowedType) {
+    ui.notifications?.warn(`Dropped ${itemType} cannot be added to ${target}.`);
+    return;
+  }
+
+  selectedSpecies.value[target] = appendUniqueString(selectedSpecies.value[target], itemName);
+}
+
 function selectSpecies(speciesId: string): void {
   selectedSpeciesId.value = speciesId;
   selectedSubspeciesId.value = null;
   closeSubspeciesBuilder();
-}
-
-function syncSelectedSpeciesId(): void {
-  if (!selectedSpecies.value) return;
-  selectedSpeciesId.value = selectedSpecies.value.id;
 }
 
 function addSpecies(): void {
@@ -458,9 +522,46 @@ async function deleteSelectedSpecies(): Promise<void> {
 }
 
 async function save(): Promise<void> {
-  if (!canSave.value) return;
+  if (!canSave.value || !selectedSpecies.value) return;
 
-  await persistSpeciesToStorage('Species saved. Reload the world to rebuild WFRP species config.');
+  const previousSpeciesList = structuredClone(toRaw(speciesList.value));
+  const previousSelectedSpeciesId = selectedSpeciesId.value;
+  const previousSelectedSubspeciesId = selectedSubspeciesId.value;
+
+  const normalizedSpeciesId = selectedSpeciesIdDraft.value.trim();
+  selectedSpecies.value.id = normalizedSpeciesId;
+  selectedSpeciesId.value = normalizedSpeciesId;
+
+  if (selectedSubspecies.value) {
+    const normalizedSubspeciesId = selectedSubspeciesIdDraft.value.trim();
+    const subspeciesRecord = ensureSelectedSpeciesSubspecies();
+    const previousSubspeciesId = previousSelectedSubspeciesId ?? selectedSubspecies.value.id;
+
+    if (previousSubspeciesId !== normalizedSubspeciesId) {
+      const subspecies = subspeciesRecord[previousSubspeciesId];
+
+      if (subspecies) {
+        delete subspeciesRecord[previousSubspeciesId];
+        subspecies.id = normalizedSubspeciesId;
+        subspeciesRecord[normalizedSubspeciesId] = subspecies;
+        selectedSubspeciesId.value = normalizedSubspeciesId;
+      }
+    } else {
+      selectedSubspecies.value.id = normalizedSubspeciesId;
+      selectedSubspeciesId.value = normalizedSubspeciesId;
+    }
+  }
+
+  try {
+    await persistSpeciesToStorage('Species saved. Reload the world to rebuild WFRP species config.');
+  } catch (error) {
+    speciesList.value = previousSpeciesList;
+    selectedSpeciesId.value = previousSelectedSpeciesId;
+    selectedSubspeciesId.value = previousSelectedSubspeciesId;
+    initialSnapshot.value = serializeSpecies(speciesList.value);
+    console.error(error);
+    ui.notifications?.error('Failed to save species changes. Changes were reverted.');
+  }
 }
 
 function parseLineList(value: string): string[] {
@@ -521,6 +622,22 @@ function escapeHtml(value: string): string {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
+
+watch(
+  () => selectedSpecies.value?.id,
+  () => {
+    selectedSpeciesIdDraft.value = selectedSpecies.value?.id ?? '';
+  },
+  { immediate: true },
+);
+
+watch(
+  () => selectedSubspecies.value?.id,
+  () => {
+    selectedSubspeciesIdDraft.value = selectedSubspecies.value?.id ?? '';
+  },
+  { immediate: true },
+);
 
 watch(
   () => props.initialSpecies,

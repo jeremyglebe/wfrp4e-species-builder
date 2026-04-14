@@ -8,7 +8,11 @@
 
       <label class="species-builder__field">
         <span>ID</span>
-        <input v-model="selectedSubspecies.id" type="text" />
+        <input
+          :value="selectedSubspeciesIdDraft"
+          type="text"
+          @input="emit('update:selected-subspecies-id-draft', ($event.target as HTMLInputElement).value)"
+        />
       </label>
 
       <label class="species-builder__field">
@@ -69,6 +73,12 @@
     <div class="species-builder__split-sections">
       <section class="species-builder__section species-builder__card">
         <h3>Skills Override</h3>
+        <DocumentDrop
+          label="Drop skill items here"
+          :accepted-drag-types="['Item']"
+          :resolve-document="true"
+          @drop-document="handleSubspeciesDocumentDrop('skills', $event)"
+        />
         <textarea
           v-model="subspeciesSkillsText"
           rows="5"
@@ -78,6 +88,12 @@
 
       <section class="species-builder__section species-builder__card">
         <h3>Talents Override</h3>
+        <DocumentDrop
+          label="Drop talent items here"
+          :accepted-drag-types="['Item']"
+          :resolve-document="true"
+          @drop-document="handleSubspeciesDocumentDrop('talents', $event)"
+        />
         <textarea
           v-model="subspeciesTalentsText"
           rows="5"
@@ -88,6 +104,12 @@
 
     <section class="species-builder__section species-builder__card">
       <h3>Traits Override</h3>
+      <DocumentDrop
+        label="Drop trait items here"
+        :accepted-drag-types="['Item']"
+        :resolve-document="true"
+        @drop-document="handleSubspeciesDocumentDrop('traits', $event)"
+      />
       <textarea
         v-model="subspeciesTraitsText"
         rows="4"
@@ -109,6 +131,7 @@
 
 <script setup lang="ts">
 import { computed, toRaw, watch } from 'vue';
+import DocumentDrop from '../../../components/DocumentDrop.vue';
 import type {
   CustomSpeciesDefinition,
   CustomSubspeciesDefinition,
@@ -118,12 +141,19 @@ import type {
 const props = defineProps<{
   selectedSpecies: CustomSpeciesDefinition;
   selectedSubspecies: CustomSubspeciesDefinition | null;
+  selectedSubspeciesIdDraft: string;
   characteristicKeys: readonly (keyof SpeciesCharacteristics)[];
 }>();
+
+interface DocumentDropPayload {
+  dragData: Record<string, unknown>;
+  document: ClientDocument | null;
+}
 
 const emit = defineEmits<{
   delete: [];
   'validation-change': [value: string | null];
+  'update:selected-subspecies-id-draft': [value: string];
 }>();
 
 const duplicateSubspeciesIds = computed(() => {
@@ -146,7 +176,7 @@ const selectedSubspeciesValidationError = computed(() => {
     return 'Subspecies name is required.';
   }
 
-  const normalizedId = props.selectedSubspecies.id.trim();
+  const normalizedId = props.selectedSubspeciesIdDraft.trim();
 
   if (!normalizedId) {
     return 'Subspecies ID is required.';
@@ -253,6 +283,47 @@ function makeOptionalNumberComputed(field: 'movement' | 'fate' | 'resilience' | 
       setOptionalSubspeciesNumber(field, value);
     },
   });
+}
+
+function appendUniqueString(target: string[] | undefined, value: string): string[] {
+  const normalized = value.trim();
+  if (!normalized) return target ?? [];
+
+  const existing = target ?? [];
+  if (existing.includes(normalized)) return existing;
+
+  return [...existing, normalized];
+}
+
+function getDroppedItemName(document: ClientDocument | null): string | null {
+  if (!document || !('name' in document)) return null;
+  return String(document.name ?? '').trim() || null;
+}
+
+function getDroppedItemType(document: ClientDocument | null): string | null {
+  if (!document || !('type' in document)) return null;
+  return String(document.type ?? '').trim() || null;
+}
+
+function handleSubspeciesDocumentDrop(
+  target: 'skills' | 'talents' | 'traits',
+  payload: DocumentDropPayload,
+): void {
+  if (!props.selectedSubspecies || !payload.document) return;
+
+  const itemName = getDroppedItemName(payload.document);
+  const itemType = getDroppedItemType(payload.document);
+
+  if (!itemName || !itemType) return;
+
+  const allowedType = target === 'skills' ? 'skill' : target === 'talents' ? 'talent' : 'trait';
+
+  if (itemType !== allowedType) {
+    ui.notifications?.warn(`Dropped ${itemType} cannot be added to subspecies ${target}.`);
+    return;
+  }
+
+  props.selectedSubspecies[target] = appendUniqueString(props.selectedSubspecies[target], itemName);
 }
 
 watch(
