@@ -20,9 +20,9 @@ Releases are created by:
 
 This project uses semantic versioning:
 
-* `v0.1.0` → initial release
-* `v0.2.0` → new features
-* `v0.2.1` → bug fixes
+- `v0.1.0` → initial release
+- `v0.2.0` → new features
+- `v0.2.1` → bug fixes
 
 Format:
 
@@ -44,11 +44,11 @@ npm run release
 
 The script walks you through:
 
-* selecting the next semantic version
-* updating `module.json` release metadata
-* optionally syncing `package.json` version
-* optionally running `npm run build`
-* optionally creating/pushing the release commit and tag
+- selecting the next semantic version
+- updating `module.json` release metadata
+- optionally syncing `package.json` version
+- optionally running `npm run build`
+- optionally creating/pushing the release commit and tag
 
 If you prefer fully manual steps, use the workflow below.
 
@@ -88,19 +88,18 @@ git push origin v0.1.0
 
 After pushing the tag:
 
-* Go to the **Actions** tab in GitHub
-* Locate the workflow triggered by the tag
-* Wait for it to complete successfully
+- Go to the **Actions** tab in GitHub
+- Locate the workflow triggered by the tag
+- Wait for it to complete successfully
 
 The pipeline should:
 
-* Build the project
-* Package the module
-* Create a GitHub release
-* Upload:
-
-  * `module.json`
-  * `module.zip`
+- Build the project
+- Package the module
+- Create a GitHub release
+- Upload:
+  - `module.json`
+  - `module.zip`
 
 ---
 
@@ -114,11 +113,10 @@ Repository → Releases
 
 Confirm:
 
-* A release named `v0.1.0` exists
-* Assets are present:
-
-  * `module.json`
-  * `module.zip`
+- A release named `v0.1.0` exists
+- Assets are present:
+  - `module.json`
+  - `module.zip`
 
 ---
 
@@ -169,41 +167,40 @@ Then repeat the verification steps.
 
 ### Workflow did not run
 
-* Ensure `.github/workflows/` exists in the repo
-* Ensure the workflow is configured to trigger on tag pushes
+- Ensure `.github/workflows/` exists in the repo
+- Ensure the workflow is configured to trigger on tag pushes
 
 ### No release created
 
-* Some workflows require manually creating a release
-* If needed:
-
-  * Go to **Releases**
-  * Click **Draft new release**
-  * Select the tag
-  * Publish
+- Some workflows require manually creating a release
+- If needed:
+  - Go to **Releases**
+  - Click **Draft new release**
+  - Select the tag
+  - Publish
 
 ### Missing assets
 
-* Check the Actions logs for errors
-* Ensure build output paths match workflow expectations
+- Check the Actions logs for errors
+- Ensure build output paths match workflow expectations
 
 ---
 
 ## Notes
 
-* The `module.json` file is the entry point for Foundry installation
-* The `module.zip` is the packaged module
-* The `/latest/` manifest URL always points to the newest release
-* Use version-specific URLs for stable distribution
+- The `module.json` file is the entry point for Foundry installation
+- The `module.zip` is the packaged module
+- The `/latest/` manifest URL always points to the newest release
+- Use version-specific URLs for stable distribution
 
 ---
 
 ## First Release Checklist
 
-* [ ] Code is pushed to GitHub
-* [ ] Workflow file is present
-* [ ] Tag created and pushed
-* [ ] GitHub Actions completed successfully
-* [ ] Release contains `module.json` and `module.zip`
-* [ ] Module installs successfully via manifest
-* [ ] Module loads without errors in Foundry
+- [ ] Code is pushed to GitHub
+- [ ] Workflow file is present
+- [ ] Tag created and pushed
+- [ ] GitHub Actions completed successfully
+- [ ] Release contains `module.json` and `module.zip`
+- [ ] Module installs successfully via manifest
+- [ ] Module loads without errors in Foundry
