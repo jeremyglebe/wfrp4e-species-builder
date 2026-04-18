@@ -36,7 +36,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   const careers = ref<CareerEntry[]>([]);
 
   /** Active tab in the NPC Builder UI. */
-  const activeTab = ref<'build' | 'options'>('build');
+  const activeTab = ref<'main' | 'skills-talents' | 'traits' | 'trappings' | 'settings'>('main');
 
   /** Whether the base actor override drop zone is visible. */
   const showBaseOverrideDropZone = ref(true);
@@ -74,7 +74,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     baseActorId.value = '';
     baseActorOverride.value = null;
     careers.value = [];
-    activeTab.value = 'build';
+    activeTab.value = 'main';
     showBaseOverrideDropZone.value = true;
     isBusy.value = false;
     busyMessage.value = '';
