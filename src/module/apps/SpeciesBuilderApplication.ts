@@ -1,4 +1,6 @@
 import SpeciesBuilderApp from '../../vue/apps/species-builder/SpeciesBuilderApp.vue';
+import { pinia } from '../../vue/pinia';
+import { useSpeciesBuilderStore } from '../../vue/stores';
 import { Settings } from '../services/settings';
 import { FoundryVueApplication } from './FoundryVueApplication';
 
@@ -7,10 +9,13 @@ import { FoundryVueApplication } from './FoundryVueApplication';
  *
  * This class defines app-specific options and props while generic
  * Foundry/Vue lifecycle logic remains in FoundryVueApplication.
+ *
+ * On each open, the species store is hydrated with the latest persisted data
+ * before the Vue app mounts. The store owns working state; this class owns
+ * the Foundry window lifecycle and the "prompt refresh on close" behavior.
  */
 export class SpeciesBuilderApplication extends FoundryVueApplication {
   protected readonly vueRootId = 'wfrp4e-species-builder-root';
-  private shouldPromptRefreshOnClose = false;
 
   static override DEFAULT_OPTIONS = {
     id: 'wfrp4e-species-builder-app',
@@ -30,23 +35,22 @@ export class SpeciesBuilderApplication extends FoundryVueApplication {
   }
 
   protected override async getVueProps(): Promise<Record<string, unknown>> {
-    return {
-      initialSpecies: Settings.loadCustomSpeciesDefinitions(),
-      onSave: Settings.saveCustomSpeciesDefinitions,
-      onSavedSinceOpen: () => {
-        this.shouldPromptRefreshOnClose = true;
-      },
-    };
+    // Hydrate the species store with the latest persisted data before mount.
+    // The store is accessed via the shared pinia instance so it is available
+    // before the Vue app (and its app.use(pinia) call) exists.
+    const store = useSpeciesBuilderStore(pinia);
+    store.hydrateFromStorage(Settings.loadCustomSpeciesDefinitions());
+    return {};
   }
 
   protected override _onClose(): void {
     super._onClose();
 
-    if (!this.shouldPromptRefreshOnClose) {
+    const store = useSpeciesBuilderStore(pinia);
+    if (!store.savedSinceOpen) {
       return;
     }
 
-    this.shouldPromptRefreshOnClose = false;
     void this.promptRefreshDialog();
   }
 

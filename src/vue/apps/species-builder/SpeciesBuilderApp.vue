@@ -8,24 +8,14 @@
             <h2>Species</h2>
           </div>
 
-          <button
-            type="button"
-            class="species-builder__button species-builder__button--primary"
-            @click="addSpecies"
-          >
+          <button type="button" class="species-builder__button species-builder__button--primary" @click="addSpecies">
             Add Species
           </button>
         </div>
 
         <div class="species-builder__species-list">
-          <button
-            v-for="species in speciesList"
-            :key="species.id"
-            type="button"
-            class="species-builder__species-item"
-            :class="{ 'is-selected': selectedSpeciesId === species.id }"
-            @click="selectSpecies(species.id)"
-          >
+          <button v-for="species in speciesList" :key="species.id" type="button" class="species-builder__species-item"
+            :class="{ 'is-selected': selectedSpeciesId === species.id }" @click="selectSpecies(species.id)">
             <div class="species-builder__species-topline">
               <strong>{{ species.name || 'Unnamed Species' }}</strong>
               <span class="species-builder__species-id">{{ species.id || 'missing-id' }}</span>
@@ -52,20 +42,12 @@
             </div>
 
             <div class="species-builder__editor-actions">
-              <button
-                type="button"
-                class="species-builder__button species-builder__button--ghost"
-                :disabled="isSaving"
-                @click="deleteSelectedSpecies"
-              >
+              <button type="button" class="species-builder__button species-builder__button--ghost" :disabled="isSaving"
+                @click="deleteSelectedSpecies">
                 Delete
               </button>
-              <button
-                type="button"
-                class="species-builder__button species-builder__button--primary"
-                :disabled="isSaving || !canSave"
-                @click="save"
-              >
+              <button type="button" class="species-builder__button species-builder__button--primary"
+                :disabled="isSaving || !canSave" @click="save">
                 Save
               </button>
             </div>
@@ -135,35 +117,23 @@
           <div class="species-builder__split-sections">
             <section class="species-builder__section species-builder__card">
               <h3>Skills</h3>
-              <DocumentDrop
-                label="Drop skill items here"
-                :accepted-drag-types="['Item']"
-                :resolve-document="true"
-                @drop-document="handleSpeciesDocumentDrop('skills', $event)"
-              />
+              <DocumentDrop label="Drop skill items here" :accepted-drag-types="['Item']" :resolve-document="true"
+                @drop-document="handleSpeciesDocumentDrop('skills', $event)" />
               <textarea v-model="skillsText" rows="7" placeholder="One skill per line" />
             </section>
 
             <section class="species-builder__section species-builder__card">
               <h3>Talents</h3>
-              <DocumentDrop
-                label="Drop talent items here"
-                :accepted-drag-types="['Item']"
-                :resolve-document="true"
-                @drop-document="handleSpeciesDocumentDrop('talents', $event)"
-              />
+              <DocumentDrop label="Drop talent items here" :accepted-drag-types="['Item']" :resolve-document="true"
+                @drop-document="handleSpeciesDocumentDrop('talents', $event)" />
               <textarea v-model="talentsText" rows="7" placeholder="One talent per line" />
             </section>
           </div>
 
           <section class="species-builder__section species-builder__card">
             <h3>Traits</h3>
-            <DocumentDrop
-              label="Drop trait items here"
-              :accepted-drag-types="['Item']"
-              :resolve-document="true"
-              @drop-document="handleSpeciesDocumentDrop('traits', $event)"
-            />
+            <DocumentDrop label="Drop trait items here" :accepted-drag-types="['Item']" :resolve-document="true"
+              @drop-document="handleSpeciesDocumentDrop('traits', $event)" />
             <textarea v-model="traitsText" rows="5" placeholder="One trait per line" />
           </section>
 
@@ -174,75 +144,48 @@
                 <h3>Subspecies</h3>
               </div>
 
-              <button
-                type="button"
-                class="species-builder__button species-builder__button--primary"
-                @click="addSubspecies"
-              >
+              <button type="button" class="species-builder__button species-builder__button--primary"
+                @click="addSubspecies">
                 Add Subspecies
               </button>
             </div>
 
-            <div
-              v-if="selectedSpeciesSubspecies.length > 0"
-              class="species-builder__subspecies-list"
-            >
-              <button
-                v-for="subspecies in selectedSpeciesSubspecies"
-                :key="subspecies.id"
-                type="button"
-                class="species-builder__species-item"
-                :class="{ 'is-selected': selectedSubspeciesId === subspecies.id }"
-                @click="openSubspeciesBuilder(subspecies.id)"
-              >
+            <div v-if="selectedSpeciesSubspecies.length > 0" class="species-builder__subspecies-list">
+              <button v-for="subspecies in selectedSpeciesSubspecies" :key="subspecies.id" type="button"
+                class="species-builder__species-item" :class="{ 'is-selected': selectedSubspeciesId === subspecies.id }"
+                @click="openSubspeciesBuilder(subspecies.id)">
                 <div class="species-builder__species-topline">
                   <strong>{{ subspecies.name || 'Unnamed Subspecies' }}</strong>
                   <span class="species-builder__species-id">{{
                     subspecies.id || 'missing-id'
-                  }}</span>
+                    }}</span>
                 </div>
               </button>
             </div>
 
             <div v-else class="species-builder__empty-state">
               <p>No subspecies created yet.</p>
-              <button
-                type="button"
-                class="species-builder__button species-builder__button--primary"
-                @click="addSubspecies"
-              >
+              <button type="button" class="species-builder__button species-builder__button--primary"
+                @click="addSubspecies">
                 Create First Subspecies
               </button>
             </div>
           </section>
 
-          <SubView
-            :show="isSubspeciesBuilderOpen"
-            :title="selectedSubspecies?.name || 'Subspecies Builder'"
-            @update:show="handleSubspeciesBuilderShowChange"
-            @back="handleSubspeciesBuilderBack"
-          >
-            <SubspeciesBuilder
-              v-if="selectedSpecies && selectedSubspecies"
-              :selected-species="selectedSpecies"
-              :selected-subspecies="selectedSubspecies"
-              :selected-subspecies-id-draft="selectedSubspeciesIdDraft"
+          <SubView :show="isSubspeciesBuilderOpen" :title="selectedSubspecies?.name || 'Subspecies Builder'"
+            @update:show="handleSubspeciesBuilderShowChange" @back="handleSubspeciesBuilderBack">
+            <SubspeciesBuilder v-if="selectedSpecies && selectedSubspecies" :selected-species="selectedSpecies"
+              :selected-subspecies="selectedSubspecies" :selected-subspecies-id-draft="selectedSubspeciesIdDraft"
               :characteristic-keys="characteristicKeys"
               @update:selected-subspecies-id-draft="selectedSubspeciesIdDraft = $event"
-              @delete="deleteSelectedSubspecies"
-              @validation-change="handleSubspeciesValidationChange"
-            />
+              @delete="deleteSelectedSubspecies" @validation-change="handleSubspeciesValidationChange" />
           </SubView>
         </template>
 
         <template v-else>
           <div class="species-builder__empty-state species-builder__card">
             <p>No species selected.</p>
-            <button
-              type="button"
-              class="species-builder__button species-builder__button--primary"
-              @click="addSpecies"
-            >
+            <button type="button" class="species-builder__button species-builder__button--primary" @click="addSpecies">
               Create First Species
             </button>
           </div>
@@ -253,97 +196,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRaw, watch } from 'vue';
-import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../../types/module';
-import { Data } from '../../../module/services';
+import { computed, toRaw } from 'vue';
+import { storeToRefs } from 'pinia';
+import type { CustomSubspeciesDefinition } from '../../../types/module';
+import { useSpeciesBuilderStore } from '../../stores';
 import SubView from '../../components/SubView.vue';
 import DocumentDrop from '../../components/DocumentDrop.vue';
 import SubspeciesBuilder from './subviews/SubspeciesBuilder.vue';
 
-const props = defineProps<{
-  initialSpecies: CustomSpeciesDefinition[];
-  onSave: (species: CustomSpeciesDefinition[]) => Promise<void>;
-  onSavedSinceOpen?: () => void;
-}>();
+/**
+ * The species builder store is the single source of truth for this session's
+ * working data. All reactive state and computed values come from the store.
+ * This component handles UI events and complex save/delete orchestration.
+ */
+const store = useSpeciesBuilderStore();
 
-const speciesList = ref<CustomSpeciesDefinition[]>(structuredClone(props.initialSpecies));
-const initialSnapshot = ref<string>(serializeSpecies(speciesList.value));
-const selectedSpeciesId = ref<string | null>(speciesList.value[0]?.id ?? null);
-const selectedSubspeciesId = ref<string | null>(null);
-const selectedSpeciesIdDraft = ref<string>('');
-const selectedSubspeciesIdDraft = ref<string>('');
-const isSubspeciesBuilderOpen = ref(false);
-const subspeciesValidationError = ref<string | null>(null);
-const isSaving = ref(false);
+// Reactive refs and computed properties from the store.
+// storeToRefs() preserves reactivity for both state and getters.
+const {
+  speciesList,
+  initialSnapshot,
+  selectedSpeciesId,
+  selectedSubspeciesId,
+  selectedSpeciesIdDraft,
+  selectedSubspeciesIdDraft,
+  isSubspeciesBuilderOpen,
+  subspeciesValidationError,
+  isSaving,
+  selectedSpecies,
+  selectedSpeciesSubspecies,
+  selectedSubspecies,
+  isDirty,
+  canSave,
+  saveStatusText,
+  validationError,
+} = storeToRefs(store);
+
+// Store actions are plain functions — no storeToRefs needed.
+// Aliased where the template uses different names.
+const { addSpecies, addSubspecies, openSubspeciesBuilder } = store;
+const selectSpecies = store.setSelectedSpecies;
 
 const characteristicKeys = ['ws', 'bs', 's', 't', 'i', 'ag', 'dex', 'int', 'wp', 'fel'] as const;
 
-const selectedSpecies = computed(() => {
-  return speciesList.value.find((species) => species.id === selectedSpeciesId.value) ?? null;
-});
-
-const selectedSpeciesSubspecies = computed(() => {
-  return Object.values(selectedSpecies.value?.subspecies ?? {});
-});
-
-const selectedSubspecies = computed<CustomSubspeciesDefinition | null>(() => {
-  return (
-    selectedSpeciesSubspecies.value.find(
-      (subspecies) => subspecies.id === selectedSubspeciesId.value,
-    ) ?? null
-  );
-});
-
-const duplicateIds = computed(() => {
-  const counts = new Map<string, number>();
-
-  for (const species of speciesList.value) {
-    const normalizedId = (species.id === selectedSpecies.value?.id ? selectedSpeciesIdDraft.value : species.id).trim();
-    if (!normalizedId) continue;
-
-    counts.set(normalizedId, (counts.get(normalizedId) ?? 0) + 1);
-  }
-
-  return counts;
-});
-
-const selectedValidationError = computed(() => {
-  if (!selectedSpecies.value) return null;
-
-  if (!selectedSpecies.value.name.trim()) {
-    return 'Name is required.';
-  }
-
-  const normalizedId = selectedSpeciesIdDraft.value.trim();
-
-  if (!normalizedId) {
-    return 'ID is required.';
-  }
-
-  if ((duplicateIds.value.get(normalizedId) ?? 0) > 1) {
-    return 'ID must be unique.';
-  }
-
-  return null;
-});
-
-const validationError = computed(() => {
-  return selectedValidationError.value ?? subspeciesValidationError.value;
-});
-
-const isDirty = computed(() => {
-  return serializeSpecies(speciesList.value) !== initialSnapshot.value;
-});
-
-const canSave = computed(() => {
-  return Boolean(selectedSpecies.value) && !validationError.value && isDirty.value;
-});
-
-const saveStatusText = computed(() => {
-  if (isDirty.value) return 'Unsaved changes';
-  return 'All changes saved';
-});
-
+// View-specific computed bindings: two-way conversion between the array state
+// owned by the store and the newline-separated textarea strings in the template.
 const skillsText = computed({
   get: () => selectedSpecies.value?.skills.join('\n') ?? '',
   set: (value: string) => {
@@ -414,18 +311,16 @@ function handleSpeciesDocumentDrop(
   selectedSpecies.value[target] = appendUniqueString(selectedSpecies.value[target], itemName);
 }
 
-function selectSpecies(speciesId: string): void {
-  selectedSpeciesId.value = speciesId;
-  selectedSubspeciesId.value = null;
-  closeSubspeciesBuilder();
+function handleSubspeciesBuilderShowChange(value: boolean): void {
+  isSubspeciesBuilderOpen.value = value;
 }
 
-function addSpecies(): void {
-  const newSpecies = Data.Empty.CustomSpeciesDefinition();
-  speciesList.value.push(newSpecies);
-  selectedSpeciesId.value = newSpecies.id;
-  selectedSubspeciesId.value = null;
-  closeSubspeciesBuilder();
+function handleSubspeciesBuilderBack(): void {
+  store.closeSubspeciesBuilder();
+}
+
+function handleSubspeciesValidationChange(value: string | null): void {
+  subspeciesValidationError.value = value;
 }
 
 function ensureSelectedSpeciesSubspecies(): Record<string, CustomSubspeciesDefinition> {
@@ -440,36 +335,6 @@ function ensureSelectedSpeciesSubspecies(): Record<string, CustomSubspeciesDefin
   return selectedSpecies.value.subspecies;
 }
 
-function openSubspeciesBuilder(subspeciesId: string): void {
-  selectedSubspeciesId.value = subspeciesId;
-  isSubspeciesBuilderOpen.value = true;
-}
-
-function addSubspecies(): void {
-  const subspeciesRecord = ensureSelectedSpeciesSubspecies();
-  const newSubspecies = Data.Empty.CustomSubspeciesDefinition();
-
-  subspeciesRecord[newSubspecies.id] = newSubspecies;
-  selectedSubspeciesId.value = newSubspecies.id;
-  isSubspeciesBuilderOpen.value = true;
-}
-
-function closeSubspeciesBuilder(): void {
-  isSubspeciesBuilderOpen.value = false;
-}
-
-function handleSubspeciesBuilderShowChange(value: boolean): void {
-  isSubspeciesBuilderOpen.value = value;
-}
-
-function handleSubspeciesBuilderBack(): void {
-  closeSubspeciesBuilder();
-}
-
-function handleSubspeciesValidationChange(value: string | null): void {
-  subspeciesValidationError.value = value;
-}
-
 function deleteSelectedSubspecies(): void {
   if (!selectedSpecies.value || !selectedSubspeciesId.value) return;
 
@@ -478,7 +343,7 @@ function deleteSelectedSubspecies(): void {
 
   const remainingSubspecies = Object.values(subspeciesRecord);
   selectedSubspeciesId.value = remainingSubspecies[0]?.id ?? null;
-  closeSubspeciesBuilder();
+  store.closeSubspeciesBuilder();
 }
 
 async function deleteSelectedSpecies(): Promise<void> {
@@ -507,12 +372,11 @@ async function deleteSelectedSpecies(): Promise<void> {
   }
 
   selectedSubspeciesId.value = null;
-  closeSubspeciesBuilder();
+  store.closeSubspeciesBuilder();
 
   try {
-    await persistSpeciesToStorage(
-      'Species deleted. Reload the world to rebuild WFRP species config.',
-    );
+    await store.saveToStorage();
+    ui.notifications?.info('Species deleted. Reload the world to rebuild WFRP species config.');
   } catch (error) {
     speciesList.value = previousSpecies;
     selectedSpeciesId.value = previousSelectedSpeciesId;
@@ -553,12 +417,13 @@ async function save(): Promise<void> {
   }
 
   try {
-    await persistSpeciesToStorage('Species saved. Reload the world to rebuild WFRP species config.');
+    await store.saveToStorage();
+    ui.notifications?.info('Species saved. Reload the world to rebuild WFRP species config.');
   } catch (error) {
     speciesList.value = previousSpeciesList;
     selectedSpeciesId.value = previousSelectedSpeciesId;
     selectedSubspeciesId.value = previousSelectedSubspeciesId;
-    initialSnapshot.value = serializeSpecies(speciesList.value);
+    initialSnapshot.value = JSON.stringify(previousSpeciesList);
     console.error(error);
     ui.notifications?.error('Failed to save species changes. Changes were reverted.');
   }
@@ -569,23 +434,6 @@ function parseLineList(value: string): string[] {
     .split('\n')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
-}
-
-function serializeSpecies(species: CustomSpeciesDefinition[]): string {
-  return JSON.stringify(species);
-}
-
-async function persistSpeciesToStorage(successMessage: string): Promise<void> {
-  isSaving.value = true;
-
-  try {
-    await props.onSave(structuredClone(toRaw(speciesList.value)));
-    props.onSavedSinceOpen?.();
-    initialSnapshot.value = serializeSpecies(speciesList.value);
-    ui.notifications?.info(successMessage);
-  } finally {
-    isSaving.value = false;
-  }
 }
 
 async function requestDeleteConfirmation(speciesName: string): Promise<boolean> {
@@ -622,56 +470,6 @@ function escapeHtml(value: string): string {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
-
-watch(
-  () => selectedSpecies.value?.id,
-  () => {
-    selectedSpeciesIdDraft.value = selectedSpecies.value?.id ?? '';
-  },
-  { immediate: true },
-);
-
-watch(
-  () => selectedSubspecies.value?.id,
-  () => {
-    selectedSubspeciesIdDraft.value = selectedSubspecies.value?.id ?? '';
-  },
-  { immediate: true },
-);
-
-watch(
-  () => props.initialSpecies,
-  (newValue) => {
-    speciesList.value = structuredClone(newValue);
-    initialSnapshot.value = serializeSpecies(speciesList.value);
-
-    if (!speciesList.value.some((species) => species.id === selectedSpeciesId.value)) {
-      selectedSpeciesId.value = speciesList.value[0]?.id ?? null;
-    }
-
-    selectedSubspeciesId.value = null;
-    closeSubspeciesBuilder();
-    subspeciesValidationError.value = null;
-  },
-);
-
-watch(
-  () => selectedSpeciesId.value,
-  () => {
-    const subspecies = selectedSpeciesSubspecies.value;
-
-    if (subspecies.length === 0) {
-      selectedSubspeciesId.value = null;
-      closeSubspeciesBuilder();
-      return;
-    }
-
-    if (!subspecies.some((entry) => entry.id === selectedSubspeciesId.value)) {
-      selectedSubspeciesId.value = subspecies[0]?.id ?? null;
-    }
-  },
-  { immediate: true },
-);
 </script>
 
 <style scoped>

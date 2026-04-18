@@ -1,10 +1,14 @@
 import { createApp, type App as VueApp, type Component } from 'vue';
+import { pinia } from '../../vue/pinia';
 
 /**
  * Base ApplicationV2 class that encapsulates Vue mount/unmount mechanics.
  *
  * This split keeps Foundry/Vue lifecycle glue in one place so concrete
  * applications can focus on app-specific concerns.
+ *
+ * Registers the shared Pinia instance with every Vue app so that all
+ * module components can access stores via useXxxStore() composables.
  */
 export abstract class FoundryVueApplication extends foundry.applications.api.ApplicationV2 {
   private vueApp?: VueApp<Element>;
@@ -34,6 +38,7 @@ export abstract class FoundryVueApplication extends foundry.applications.api.App
     const props = await this.getVueProps();
 
     this.vueApp = createApp(this.getVueComponent(), props ?? {});
+    this.vueApp.use(pinia);
     this.vueApp.mount(root);
   }
 

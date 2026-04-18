@@ -244,18 +244,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { x8 } from '@upscalerjs/esrgan-thick';
-import type { BaseActorOption, BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../types/module';
+import type { BaseActorOption, CareerEntry } from '../../types/module';
 import {
   getActorFolderByName,
   getOrCreateActorFolderByName,
-  loadNPCBuilderSettings,
   normalizeFolderName,
-  saveNPCBuilderSettings,
 } from '../../module/services/settings/npcs';
 import { buildFinalName, getSpeciesName } from '../../module/services/npc-builder-naming';
 import { CareerIndexService } from '../../module/services/career-index-service';
+import { useNpcBuilderStore } from '../stores';
 
 type CloseCallback = () => void;
 
@@ -263,14 +263,29 @@ const props = defineProps<{
   onClose?: CloseCallback;
 }>();
 
-const baseActorId = ref('');
-const baseActorOverride = ref<BaseActorOverride | null>(null);
-const careers = ref<CareerEntry[]>([]);
-const activeTab = ref<'build' | 'options'>('build');
-const showBaseOverrideDropZone = ref(true);
-const settings = ref<NPCBuilderSettings>(loadNPCBuilderSettings());
-const isBusy = ref(false);
-const busyMessage = ref('');
+/**
+ * The NPC Builder store is the single source of truth for this session's
+ * working state. Components access state via storeToRefs() for reactivity.
+ * Settings are loaded from persistence via NPCBuilderApplication.getVueProps()
+ * before mount, and persisted via store.saveToStorage().
+ */
+const store = useNpcBuilderStore();
+
+// Reactive state from the store.
+const {
+  baseActorId,
+  baseActorOverride,
+  careers,
+  activeTab,
+  showBaseOverrideDropZone,
+  settings,
+  isBusy,
+  busyMessage,
+} = storeToRefs(store);
+
+// Store actions destructured directly — no storeToRefs needed for functions.
+const { removeCareer, moveCareer } = store;
+
 let upscalerInstance: any = null;
 
 const careerIndex = new CareerIndexService({
@@ -515,25 +530,10 @@ async function addCareerToQueue(item: any): Promise<void> {
   }
 }
 
-function removeCareer(index: number): void {
-  careers.value.splice(index, 1);
-}
-
-function moveCareer(index: number, direction: -1 | 1): void {
-  const targetIndex = index + direction;
-  if (targetIndex < 0 || targetIndex >= careers.value.length) return;
-
-  const sourceCareer = careers.value[index];
-  const targetCareer = careers.value[targetIndex];
-  if (sourceCareer && targetCareer) {
-    [careers.value[index], careers.value[targetIndex]] = [targetCareer, sourceCareer];
-  }
-}
-
 async function saveFolderSettings(): Promise<void> {
   settings.value.baseFolderName = normalizeFolderName(settings.value.baseFolderName);
   settings.value.outputFolderName = normalizeFolderName(settings.value.outputFolderName);
-  await saveNPCBuilderSettings(settings.value);
+  await store.saveToStorage();
 
   if (settings.value.baseFolderName) {
     await getOrCreateActorFolderByName(settings.value.baseFolderName);
@@ -696,9 +696,7 @@ async function buildNPC(): Promise<void> {
       void upscaleAndApplyActorImage(createdActor, finalCareerImage);
     }
 
-    baseActorOverride.value = null;
-    careers.value = [];
-    showBaseOverrideDropZone.value = true;
+    store.resetWorkingNpc();
   } catch (error) {
     console.error('NPC Builder error:', error);
     ui.notifications?.error('Failed to build NPC. Check the console for details.');
@@ -754,10 +752,14 @@ function close(): void {
   props.onClose?.();
 }
 
+// Auto-save settings to world storage whenever any setting value changes.
+// This mirrors the previous behavior where changes triggered saveNPCBuilderSettings.
+// store.saveToStorage() delegates to the settings service — no direct Foundry
+// calls from this component.
 watch(
-  () => settings.value,
-  (newSettings) => {
-    void saveNPCBuilderSettings(newSettings);
+  settings,
+  () => {
+    void store.saveToStorage();
   },
   { deep: true },
 );
