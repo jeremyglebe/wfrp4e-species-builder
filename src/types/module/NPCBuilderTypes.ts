@@ -14,6 +14,12 @@ export interface NPCBuilderSettings {
   baseFolderName: string;
   /** Name of the folder where generated NPCs will be created */
   outputFolderName: string;
+  /** Whether base actor skills may appear as upgradeable entries in the advancement tab */
+  allowUpgradeBaseSkills: boolean;
+  /** Whether base actor characteristics may appear as upgradeable entries in the advancement tab */
+  allowUpgradeBaseCharacteristics: boolean;
+  /** Whether base actor talents may appear as upgradeable entries in the advancement tab */
+  allowUpgradeBaseTalents: boolean;
 }
 
 /**

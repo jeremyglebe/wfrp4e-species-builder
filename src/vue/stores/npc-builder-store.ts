@@ -11,14 +11,55 @@ import {
   getTalentXpCost,
 } from '../apps/npc-builder/xp-cost';
 
+/**
+ * Tracks advancement sources and values for a single skill, talent, or characteristic.
+ *
+ * The model distinguishes between:
+ * - baseline: value derived from queued careers only
+ * - current: user-edited advancement value
+ * - includedFromCareer: whether this entry is granted by at least one queued career
+ * - includedFromBase: whether this entry exists on the selected base actor
+ * - effectiveRankForCost: (talents only) the effective rank before user edits, used for XP cost calculation
+ * - editable: whether the user can modify the current value in the UI
+ */
 export interface AdvancementValue {
-  base: number;
+  /** Total baseline advances/ranks from all queued careers */
+  baseline: number;
+  /** User-edited current advances/ranks */
   current: number;
+  /** True if at least one queued career grants this skill/talent/characteristic */
+  includedFromCareer: boolean;
+  /** True if the base actor already has this skill/talent/characteristic */
+  includedFromBase: boolean;
+  /** (talents only) The effective rank from all sources (career + base) before user edits, used for cost calculation */
+  effectiveRankForCost: number;
+  /** Whether this entry is editable by the user in the UI */
+  editable: boolean;
 }
 
-export interface AdvancementBaseSnapshot {
+/**
+ * Career-derived advancement baseline snapshot.
+ * Built directly from queued careers, before base actor inclusion.
+ */
+export interface CareerAdvancementBaseline {
+  /** Career-derived skill advances: keyed by skill name, value is total +5 per matching career */
   skills: Record<string, number>;
+  /** Career-derived talent ranks: keyed by talent name, value is total +1 per matching career */
   talents: Record<string, number>;
+  /** Career-derived characteristic advances: keyed by characteristic name, value is +5 per career that grants it */
+  characteristics: Record<string, number>;
+}
+
+/**
+ * Optional base actor advancement snapshot.
+ * Captured from the selected base actor for optional inclusion.
+ */
+export interface BaseActorAdvancementSnapshot {
+  /** Base actor skill advances: keyed by skill name */
+  skills: Record<string, number>;
+  /** Base actor talent ranks: keyed by talent name */
+  talents: Record<string, number>;
+  /** Base actor characteristic advances: keyed by characteristic name */
   characteristics: Record<string, number>;
 }
 
@@ -109,21 +150,28 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     return skillsXp.value + talentsXp.value + characteristicsXp.value;
   });
 
+  /**
+   * Base XP uses the effective baseline from all sources:
+   * - Skills: career-derived only (base actor values don't count as advances)
+   * - Characteristics: career-derived only
+   * - Talents: career + base actor (base ranks always count for cost)
+   */
   const baseSkillsXp = computed(() => {
     return Object.values(skills.value).reduce((sum, entry) => {
-      return sum + getSkillXpCost(entry.base);
+      return sum + getSkillXpCost(entry.baseline);
     }, 0);
   });
 
   const baseTalentsXp = computed(() => {
     return Object.values(talents.value).reduce((sum, entry) => {
-      return sum + getTalentXpCost(entry.base);
+      // For talents, use effectiveRankForCost which includes base contributions
+      return sum + getTalentXpCost(entry.effectiveRankForCost);
     }, 0);
   });
 
   const baseCharacteristicsXp = computed(() => {
     return Object.values(characteristics.value).reduce((sum, entry) => {
-      return sum + getCharacteristicXpCost(entry.base);
+      return sum + getCharacteristicXpCost(entry.baseline);
     }, 0);
   });
 
@@ -165,82 +213,347 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     return Math.max(0, Math.floor(value));
   }
 
-  function hydrateAdvancementCategory(
-    existing: Record<string, AdvancementValue>,
-    incoming: Record<string, number>,
-    preserveCurrent: boolean,
-  ): Record<string, AdvancementValue> {
-    const next: Record<string, AdvancementValue> = {};
+  /**
+   * Builds a career advancement baseline by extracting skills, talents, and characteristics
+   * from all queued careers. Each career contributes:
+   * - +5 advances to each of its skills
+   * - +1 rank to each of its talents
+   * - availability for each of its characteristics
+   */
+  async function buildCareerAdvancements(): Promise<CareerAdvancementBaseline> {
+    const baseline: CareerAdvancementBaseline = {
+      skills: {},
+      talents: {},
+      characteristics: {},
+    };
 
-    for (const [name, baseValueRaw] of Object.entries(incoming)) {
-      const baseValue = toSafeNonNegativeInteger(baseValueRaw);
-      const previous = existing[name];
-      next[name] = {
-        base: baseValue,
-        current:
-          preserveCurrent && previous ? toSafeNonNegativeInteger(previous.current) : baseValue,
-      };
+    for (const careerEntry of careers.value) {
+      const careerItem = await fromUuid(careerEntry.uuid);
+      if (!careerItem || typeof careerItem !== 'object') continue;
+
+      const careerItemAny = careerItem as any;
+
+      // Read career skills from system.skills array
+      const careerSkills = careerItemAny?.system?.skills;
+      if (Array.isArray(careerSkills)) {
+        for (const skillName of careerSkills) {
+          const trimmedName = String(skillName ?? '').trim();
+          if (trimmedName) {
+            baseline.skills[trimmedName] = (baseline.skills[trimmedName] ?? 0) + 5;
+          }
+        }
+      }
+
+      // Read career talents from system.talents array
+      const careerTalents = careerItemAny?.system?.talents;
+      if (Array.isArray(careerTalents)) {
+        for (const talentName of careerTalents) {
+          const trimmedName = String(talentName ?? '').trim();
+          if (trimmedName) {
+            baseline.talents[trimmedName] = (baseline.talents[trimmedName] ?? 0) + 1;
+          }
+        }
+      }
+
+      // Read career characteristics - only include those where value is true
+      // Each career contributes +5 advances per characteristic it grants
+      const careerCharacteristics = careerItemAny?.system?.characteristics;
+      if (careerCharacteristics && typeof careerCharacteristics === 'object') {
+        for (const [key, value] of Object.entries(careerCharacteristics as Record<string, any>)) {
+          // Only include if explicitly true
+          if (value === true) {
+            const normalizedKey = String(key).toUpperCase().trim();
+            if (normalizedKey) {
+              baseline.characteristics[normalizedKey] = (baseline.characteristics[normalizedKey] ?? 0) + 5;
+            }
+          }
+        }
+      }
     }
 
-    return next;
+    return baseline;
   }
 
   /**
-   * Hydrates advancement baselines from generated state (base actor/career flow)
-   * while optionally preserving user-edited current values for matching entries.
+   * Reads advancement values from a base actor for optional inclusion.
    */
-  function hydrateAdvancements(snapshot: AdvancementBaseSnapshot, preserveCurrent = true): void {
-    skills.value = hydrateAdvancementCategory(skills.value, snapshot.skills, preserveCurrent);
-    talents.value = hydrateAdvancementCategory(talents.value, snapshot.talents, preserveCurrent);
-    characteristics.value = hydrateAdvancementCategory(
-      characteristics.value,
-      snapshot.characteristics,
-      preserveCurrent,
-    );
+  function readBaseActorAdvancements(baseActor: any | null): BaseActorAdvancementSnapshot {
+    const snapshot: BaseActorAdvancementSnapshot = {
+      skills: {},
+      talents: {},
+      characteristics: {},
+    };
+
+    if (!baseActor || typeof baseActor !== 'object') return snapshot;
+
+    const baseActorAny = baseActor as any;
+
+    // Read characteristics
+    const characteristics = baseActorAny?.system?.characteristics;
+    if (characteristics && typeof characteristics === 'object') {
+      for (const [key, value] of Object.entries(characteristics as Record<string, any>)) {
+        const normalizedKey = String(key).toUpperCase().trim();
+        if (!normalizedKey) continue;
+
+        const advances = readNumberFromPaths(value, ['advances.value', 'advances', 'advance.value', 'advance']);
+        snapshot.characteristics[normalizedKey] = toSafeNonNegativeInteger(advances ?? 0);
+      }
+    }
+
+    // Read skills and talents from items
+    if (Array.isArray(baseActorAny?.items?.contents)) {
+      for (const item of baseActorAny.items.contents) {
+        const itemType = String(item?.type ?? '').toLowerCase();
+        const itemName = String(item?.name ?? '').trim();
+        if (!itemName) continue;
+
+        if (itemType === 'skill') {
+          const advances = readNumberFromPaths(item?.system, [
+            'advances.value',
+            'advances',
+            'level.value',
+            'level',
+          ]);
+          snapshot.skills[itemName] = toSafeNonNegativeInteger(advances ?? 0);
+        }
+
+        if (itemType === 'talent') {
+          const rank = readNumberFromPaths(item?.system, [
+            'advances.value',
+            'advances',
+            'level.value',
+            'level',
+            'rank.value',
+            'rank',
+          ]);
+          const talentBase = rank == null ? 1 : toSafeNonNegativeInteger(rank);
+          snapshot.talents[itemName] = Math.max(1, talentBase);
+        }
+      }
+    }
+
+    return snapshot;
+  }
+
+  /**
+   * Helper to read a number from multiple possible paths in an object.
+   */
+  function readNumberFromPaths(source: any, paths: string[]): number | null {
+    for (const path of paths) {
+      const segments = path.split('.');
+      let current: any = source;
+
+      for (const segment of segments) {
+        current = current?.[segment];
+      }
+
+      if (typeof current === 'number' && Number.isFinite(current)) {
+        return current;
+      }
+
+      if (typeof current === 'string' && current.trim().length > 0) {
+        const numeric = Number(current);
+        if (Number.isFinite(numeric)) {
+          return numeric;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Merges career-derived baselines with optional base actor advancement values
+   * to create the final AdvancementValue entries for skills, talents, and characteristics.
+   *
+   * This is the core logic that implements the corrected advancement model:
+   * - Skills: career baseline only, base actor values ignored for advancement tracking
+   * - Talents: career baseline + base actor ranks for cost calculation
+   * - Characteristics: career-granted only, base actor values don't count as advances
+   */
+  function mergeAdvancementsWithSettings(
+    careerBaseline: CareerAdvancementBaseline,
+    baseActorValues: BaseActorAdvancementSnapshot,
+  ): {
+    skills: Record<string, AdvancementValue>;
+    talents: Record<string, AdvancementValue>;
+    characteristics: Record<string, AdvancementValue>;
+  } {
+    const result = {
+      skills: {} as Record<string, AdvancementValue>,
+      talents: {} as Record<string, AdvancementValue>,
+      characteristics: {} as Record<string, AdvancementValue>,
+    };
+
+    // Merge skills
+    const allSkillKeys = new Set([...Object.keys(careerBaseline.skills), ...Object.keys(baseActorValues.skills)]);
+    for (const skillName of allSkillKeys) {
+      const fromCareer = careerBaseline.skills[skillName] ?? 0;
+      const fromBase = baseActorValues.skills[skillName] ?? 0;
+      const fromBaseExists = fromBase > 0;
+
+      const shouldShow = fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseSkills);
+      if (!shouldShow) continue;
+
+      result.skills[skillName] = {
+        baseline: fromCareer, // Skills: only career counts as baseline
+        current: fromCareer, // Start from career baseline
+        includedFromCareer: fromCareer > 0,
+        includedFromBase: fromBaseExists,
+        effectiveRankForCost: 0, // Not used for skills
+        editable: true, // Skills are always editable if shown
+      };
+    }
+
+    // Merge talents
+    const allTalentKeys = new Set([
+      ...Object.keys(careerBaseline.talents),
+      ...Object.keys(baseActorValues.talents),
+    ]);
+    for (const talentName of allTalentKeys) {
+      const fromCareer = careerBaseline.talents[talentName] ?? 0;
+      const fromBase = baseActorValues.talents[talentName] ?? 0;
+      const fromBaseExists = fromBase > 0;
+
+      const editable = fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseTalents);
+      const shouldShow = editable;
+      if (!shouldShow) continue;
+
+      // For talents: effective rank always includes base contributions (even if not editable)
+      const effectiveRankForCost = fromCareer + (fromBaseExists ? fromBase : 0);
+
+      result.talents[talentName] = {
+        baseline: fromCareer, // Talents: baseline is career-only
+        current: effectiveRankForCost, // Start from effective rank (career + base)
+        includedFromCareer: fromCareer > 0,
+        includedFromBase: fromBaseExists,
+        effectiveRankForCost, // For cost calculation
+        editable,
+      };
+    }
+
+    // Merge characteristics
+    const allCharKeys = new Set([
+      ...Object.keys(careerBaseline.characteristics),
+      ...Object.keys(baseActorValues.characteristics),
+    ]);
+    for (const charName of allCharKeys) {
+      const fromCareer = careerBaseline.characteristics[charName] ?? 0;
+      const fromBase = baseActorValues.characteristics[charName] ?? 0;
+      const fromCareerExists = fromCareer > 0;
+      const fromBaseExists = fromBase > 0;
+
+      const shouldShow = fromCareerExists || (fromBaseExists && settings.value.allowUpgradeBaseCharacteristics);
+      if (!shouldShow) continue;
+
+      // Career characteristics start at their career-derived baseline (typically 5 per career)
+      // Base characteristic values do not count as prior advances (they start from 0)
+      const baseline = fromCareer;
+      const current = fromCareer; // Start from career baseline
+
+      result.characteristics[charName] = {
+        baseline,
+        current,
+        includedFromCareer: fromCareerExists,
+        includedFromBase: fromBaseExists,
+        effectiveRankForCost: 0, // Not used for characteristics
+        editable: true, // Always editable if shown
+      };
+    }
+
+    return result;
+  }
+
+  /**
+   * Hydrates all advancement categories (skills, talents, characteristics) based on
+   * queued careers and optional base actor. Uses the corrected career-baseline model.
+   *
+   * Preserves user-edited current values where possible.
+   */
+  async function hydrateAdvancements(baseActor: any | null, preserveCurrent = true): Promise<void> {
+    const careerBaseline = await buildCareerAdvancements();
+    const baseActorValues = readBaseActorAdvancements(baseActor);
+    const merged = mergeAdvancementsWithSettings(careerBaseline, baseActorValues);
+
+    // Update skills while optionally preserving user edits
+    const nextSkills: Record<string, AdvancementValue> = {};
+    for (const [name, newEntry] of Object.entries(merged.skills)) {
+      const existing = skills.value[name];
+      nextSkills[name] = {
+        ...newEntry,
+        current: preserveCurrent && existing ? existing.current : newEntry.current,
+      };
+    }
+    skills.value = nextSkills;
+
+    // Update talents while optionally preserving user edits
+    const nextTalents: Record<string, AdvancementValue> = {};
+    for (const [name, newEntry] of Object.entries(merged.talents)) {
+      const existing = talents.value[name];
+      nextTalents[name] = {
+        ...newEntry,
+        current: preserveCurrent && existing ? existing.current : newEntry.current,
+      };
+    }
+    talents.value = nextTalents;
+
+    // Update characteristics while optionally preserving user edits
+    const nextCharacteristics: Record<string, AdvancementValue> = {};
+    for (const [name, newEntry] of Object.entries(merged.characteristics)) {
+      const existing = characteristics.value[name];
+      nextCharacteristics[name] = {
+        ...newEntry,
+        current: preserveCurrent && existing ? existing.current : newEntry.current,
+      };
+    }
+    characteristics.value = nextCharacteristics;
   }
 
   function setSkillCurrent(name: string, current: number): void {
     const existing = skills.value[name];
-    const base = existing?.base ?? 0;
+    if (!existing) return;
     skills.value[name] = {
-      base,
+      ...existing,
       current: toSafeNonNegativeInteger(current),
     };
   }
 
   function setTalentCurrent(name: string, current: number): void {
     const existing = talents.value[name];
-    const base = existing?.base ?? 0;
+    if (!existing) return;
     talents.value[name] = {
-      base,
+      ...existing,
       current: toSafeNonNegativeInteger(current),
     };
   }
 
   function setCharacteristicCurrent(name: string, current: number): void {
     const existing = characteristics.value[name];
-    const base = existing?.base ?? 0;
+    if (!existing) return;
     characteristics.value[name] = {
-      base,
+      ...existing,
       current: toSafeNonNegativeInteger(current),
     };
   }
 
   function adjustSkillCurrent(name: string, delta: number): void {
     const existing = skills.value[name];
-    const nextValue = (existing?.current ?? 0) + delta;
+    if (!existing) return;
+    const nextValue = existing.current + Math.floor(delta);
     setSkillCurrent(name, nextValue);
   }
 
   function adjustTalentCurrent(name: string, delta: number): void {
     const existing = talents.value[name];
-    const nextValue = (existing?.current ?? 0) + delta;
+    if (!existing) return;
+    const nextValue = existing.current + Math.floor(delta);
     setTalentCurrent(name, nextValue);
   }
 
   function adjustCharacteristicCurrent(name: string, delta: number): void {
     const existing = characteristics.value[name];
-    const nextValue = (existing?.current ?? 0) + delta;
+    if (!existing) return;
+    const nextValue = existing.current + Math.floor(delta);
     setCharacteristicCurrent(name, nextValue);
   }
 

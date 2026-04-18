@@ -67,7 +67,6 @@ import NpcBuilderSkillsTalentsTab from './tabs/NpcBuilderSkillsTalentsTab.vue';
 import NpcBuilderTraitsTab from './tabs/NpcBuilderTraitsTab.vue';
 import NpcBuilderTrappingsTab from './tabs/NpcBuilderTrappingsTab.vue';
 import NpcBuilderSettingsTab from './tabs/NpcBuilderSettingsTab.vue';
-import type { AdvancementBaseSnapshot } from '../../stores/npc-builder-store';
 
 type CloseCallback = () => void;
 
@@ -300,80 +299,6 @@ function toSafeNonNegativeInteger(value: unknown, fallback = 0): number {
     return Math.max(0, Math.floor(parsed));
 }
 
-function readNumberFromPaths(source: any, paths: string[]): number | null {
-    for (const path of paths) {
-        const segments = path.split('.');
-        let current: any = source;
-
-        for (const segment of segments) {
-            current = current?.[segment];
-        }
-
-        if (typeof current === 'number' && Number.isFinite(current)) {
-            return current;
-        }
-
-        if (typeof current === 'string' && current.trim().length > 0) {
-            const numeric = Number(current);
-            if (Number.isFinite(numeric)) {
-                return numeric;
-            }
-        }
-    }
-
-    return null;
-}
-
-function buildAdvancementSnapshotFromActor(baseActor: any | null): AdvancementBaseSnapshot {
-    const snapshot: AdvancementBaseSnapshot = {
-        skills: {},
-        talents: {},
-        characteristics: {},
-    };
-
-    if (!baseActor) {
-        return snapshot;
-    }
-
-    const characteristics = baseActor?.system?.characteristics;
-    if (characteristics && typeof characteristics === 'object') {
-        for (const [key, value] of Object.entries(characteristics as Record<string, any>)) {
-            const normalizedKey = String(key).toUpperCase().trim();
-            if (!normalizedKey) continue;
-
-            const advances = readNumberFromPaths(value, ['advances.value', 'advances', 'advance.value', 'advance']);
-            snapshot.characteristics[normalizedKey] = toSafeNonNegativeInteger(advances ?? 0);
-        }
-    }
-
-    for (const item of baseActor?.items?.contents ?? []) {
-        const itemType = String(item?.type ?? '').toLowerCase();
-        const itemName = String(item?.name ?? '').trim();
-        if (!itemName) continue;
-
-        if (itemType === 'skill') {
-            const advances = readNumberFromPaths(item?.system, ['advances.value', 'advances', 'level.value', 'level']);
-            snapshot.skills[itemName] = toSafeNonNegativeInteger(advances ?? 0);
-            continue;
-        }
-
-        if (itemType === 'talent') {
-            const rank = readNumberFromPaths(item?.system, [
-                'advances.value',
-                'advances',
-                'level.value',
-                'level',
-                'rank.value',
-                'rank',
-            ]);
-            const talentBase = rank == null ? 1 : toSafeNonNegativeInteger(rank);
-            snapshot.talents[itemName] = Math.max(1, talentBase);
-        }
-    }
-
-    return snapshot;
-}
-
 async function syncAdvancementsFromBuildInputs(): Promise<void> {
     const token = ++advancementHydrationToken;
     const baseActor = await resolveBaseActor();
@@ -382,8 +307,8 @@ async function syncAdvancementsFromBuildInputs(): Promise<void> {
         return;
     }
 
-    const snapshot = buildAdvancementSnapshotFromActor(baseActor);
-    store.hydrateAdvancements(snapshot, true);
+    // Call the store's hydrateAdvancements which handles career-based baselines
+    await store.hydrateAdvancements(baseActor, true);
 }
 
 async function getUpscalerLazy(): Promise<any> {

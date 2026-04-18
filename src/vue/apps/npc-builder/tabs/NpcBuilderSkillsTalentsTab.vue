@@ -13,7 +13,7 @@
             <div v-else class="npc-builder__adv-list">
                 <div v-for="entry in skillRows" :key="`skill-${entry.name}`" class="npc-builder__adv-row">
                     <div class="npc-builder__adv-name">{{ entry.name }}</div>
-                    <div class="npc-builder__adv-meta">Base {{ entry.base }}</div>
+                    <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
                             @click="adjustSkillCurrent(entry.name, -1)">
@@ -44,7 +44,7 @@
             <div v-else class="npc-builder__adv-list">
                 <div v-for="entry in talentRows" :key="`talent-${entry.name}`" class="npc-builder__adv-row">
                     <div class="npc-builder__adv-name">{{ entry.name }}</div>
-                    <div class="npc-builder__adv-meta">Base {{ entry.base }}</div>
+                    <div class="npc-builder__adv-meta">Base {{ entry.baseline }} / Effective {{ entry.effectiveRankForCost }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
                             @click="adjustTalentCurrent(entry.name, -1)">
@@ -76,7 +76,7 @@
                 <div v-for="entry in characteristicRows" :key="`characteristic-${entry.name}`"
                     class="npc-builder__adv-row">
                     <div class="npc-builder__adv-name">{{ entry.name }}</div>
-                    <div class="npc-builder__adv-meta">Base {{ entry.base }}</div>
+                    <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
                             @click="adjustCharacteristicCurrent(entry.name, -1)">
@@ -168,9 +168,11 @@ const skillRows = computed(() => {
     return Object.entries(skills.value)
         .map(([name, value]) => ({
             name,
-            base: value.base,
+            baseline: value.baseline,
             current: value.current,
-            xp: getSkillXpCost(value.current),
+            xp: getTalentXpCost(value.current) - getTalentXpCost(value.baseline),
+            includedFromCareer: value.includedFromCareer,
+            includedFromBase: value.includedFromBase,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -179,9 +181,12 @@ const talentRows = computed(() => {
     return Object.entries(talents.value)
         .map(([name, value]) => ({
             name,
-            base: value.base,
+            baseline: value.baseline,
             current: value.current,
-            xp: getTalentXpCost(value.current),
+            xp: getTalentXpCost(value.current) - getTalentXpCost(value.effectiveRankForCost),
+            includedFromCareer: value.includedFromCareer,
+            includedFromBase: value.includedFromBase,
+            effectiveRankForCost: value.effectiveRankForCost,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -190,9 +195,11 @@ const characteristicRows = computed(() => {
     return Object.entries(characteristics.value)
         .map(([name, value]) => ({
             name,
-            base: value.base,
+            baseline: value.baseline,
             current: value.current,
-            xp: getCharacteristicXpCost(value.current),
+            xp: getTalentXpCost(value.current) - getTalentXpCost(value.baseline),
+            includedFromCareer: value.includedFromCareer,
+            includedFromBase: value.includedFromBase,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 });

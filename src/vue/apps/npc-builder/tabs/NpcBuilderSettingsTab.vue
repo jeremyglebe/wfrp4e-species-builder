@@ -57,6 +57,39 @@
                 <span>Circular Token?</span>
             </label>
         </div>
+
+        <div class="npc-builder__section">
+            <div class="npc-builder__section-title">Base Actor Advancement Options</div>
+            <div class="npc-builder__hint">
+                Control which base actor advancements can be upgraded in the Skills & Talents tab. Career-derived
+                baselines are always available and always editable.
+            </div>
+
+            <label class="npc-builder__checkbox">
+                <input v-model="settings.allowUpgradeBaseSkills" type="checkbox" />
+                <span>Allow upgrading base actor skills</span>
+            </label>
+            <div class="npc-builder__hint">
+                Base skill values do not count as prior advances; they start from 0 for XP purposes.
+            </div>
+
+            <label class="npc-builder__checkbox">
+                <input v-model="settings.allowUpgradeBaseCharacteristics" type="checkbox" />
+                <span>Allow upgrading base actor characteristics</span>
+            </label>
+            <div class="npc-builder__hint">
+                Base characteristic values do not count as prior advances; they start from 0 for XP purposes.
+            </div>
+
+            <label class="npc-builder__checkbox">
+                <input v-model="settings.allowUpgradeBaseTalents" type="checkbox" />
+                <span>Allow upgrading base actor talents</span>
+            </label>
+            <div class="npc-builder__hint">
+                Base talent ranks always count toward cost scaling, even if this is disabled. This only controls
+                visibility and editability.
+            </div>
+        </div>
     </section>
 </template>
 

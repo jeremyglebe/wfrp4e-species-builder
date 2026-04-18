@@ -14,6 +14,9 @@ export function getDefaultNPCBuilderSettings(): NPCBuilderSettings {
     circularToken: true,
     baseFolderName: 'NPC Builder Bases',
     outputFolderName: 'NPC Builder Output',
+    allowUpgradeBaseSkills: false,
+    allowUpgradeBaseCharacteristics: false,
+    allowUpgradeBaseTalents: true,
   };
 }
 
