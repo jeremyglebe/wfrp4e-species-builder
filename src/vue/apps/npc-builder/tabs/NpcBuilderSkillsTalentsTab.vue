@@ -44,7 +44,8 @@
             <div v-else class="npc-builder__adv-list">
                 <div v-for="entry in talentRows" :key="`talent-${entry.name}`" class="npc-builder__adv-row">
                     <div class="npc-builder__adv-name">{{ entry.name }}</div>
-                    <div class="npc-builder__adv-meta">Base {{ entry.baseline }} / Effective {{ entry.effectiveRankForCost }}</div>
+                    <div class="npc-builder__adv-meta">Base {{ entry.baseline }} / Effective {{
+                        entry.effectiveRankForCost }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
                             @click="adjustTalentCurrent(entry.name, -1)">

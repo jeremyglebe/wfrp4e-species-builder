@@ -264,7 +264,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
           if (value === true) {
             const normalizedKey = String(key).toUpperCase().trim();
             if (normalizedKey) {
-              baseline.characteristics[normalizedKey] = (baseline.characteristics[normalizedKey] ?? 0) + 5;
+              baseline.characteristics[normalizedKey] =
+                (baseline.characteristics[normalizedKey] ?? 0) + 5;
             }
           }
         }
@@ -295,7 +296,12 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         const normalizedKey = String(key).toUpperCase().trim();
         if (!normalizedKey) continue;
 
-        const advances = readNumberFromPaths(value, ['advances.value', 'advances', 'advance.value', 'advance']);
+        const advances = readNumberFromPaths(value, [
+          'advances.value',
+          'advances',
+          'advance.value',
+          'advance',
+        ]);
         snapshot.characteristics[normalizedKey] = toSafeNonNegativeInteger(advances ?? 0);
       }
     }
@@ -386,13 +392,17 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     };
 
     // Merge skills
-    const allSkillKeys = new Set([...Object.keys(careerBaseline.skills), ...Object.keys(baseActorValues.skills)]);
+    const allSkillKeys = new Set([
+      ...Object.keys(careerBaseline.skills),
+      ...Object.keys(baseActorValues.skills),
+    ]);
     for (const skillName of allSkillKeys) {
       const fromCareer = careerBaseline.skills[skillName] ?? 0;
       const fromBase = baseActorValues.skills[skillName] ?? 0;
       const fromBaseExists = fromBase > 0;
 
-      const shouldShow = fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseSkills);
+      const shouldShow =
+        fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseSkills);
       if (!shouldShow) continue;
 
       result.skills[skillName] = {
@@ -443,7 +453,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const fromCareerExists = fromCareer > 0;
       const fromBaseExists = fromBase > 0;
 
-      const shouldShow = fromCareerExists || (fromBaseExists && settings.value.allowUpgradeBaseCharacteristics);
+      const shouldShow =
+        fromCareerExists || (fromBaseExists && settings.value.allowUpgradeBaseCharacteristics);
       if (!shouldShow) continue;
 
       // Career characteristics start at their career-derived baseline (typically 5 per career)
