@@ -1,10 +1,26 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../types/module';
 import {
   getDefaultNPCBuilderSettings,
   saveNPCBuilderSettings,
 } from '../../module/services/settings/npcs';
+import {
+  getCharacteristicXpCost,
+  getSkillXpCost,
+  getTalentXpCost,
+} from '../apps/npc-builder/xp-cost';
+
+export interface AdvancementValue {
+  base: number;
+  current: number;
+}
+
+export interface AdvancementBaseSnapshot {
+  skills: Record<string, number>;
+  talents: Record<string, number>;
+  characteristics: Record<string, number>;
+}
 
 /**
  * NPC Builder Pinia store.
@@ -59,6 +75,67 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   const settings = ref<NPCBuilderSettings>(getDefaultNPCBuilderSettings());
 
   // ---------------------------------------------------------------------------
+  // Skills / talents / characteristics advancement state (sandbox editor)
+  // ---------------------------------------------------------------------------
+
+  /** Skill advancements: base from generated state + current user-edited value. */
+  const skills = ref<Record<string, AdvancementValue>>({});
+
+  /** Talent ranks: base from generated state + current user-edited value. */
+  const talents = ref<Record<string, AdvancementValue>>({});
+
+  /** Characteristic advancements: base from generated state + current user-edited value. */
+  const characteristics = ref<Record<string, AdvancementValue>>({});
+
+  const skillsXp = computed(() => {
+    return Object.values(skills.value).reduce((sum, entry) => {
+      return sum + getSkillXpCost(entry.current);
+    }, 0);
+  });
+
+  const talentsXp = computed(() => {
+    return Object.values(talents.value).reduce((sum, entry) => {
+      return sum + getTalentXpCost(entry.current);
+    }, 0);
+  });
+
+  const characteristicsXp = computed(() => {
+    return Object.values(characteristics.value).reduce((sum, entry) => {
+      return sum + getCharacteristicXpCost(entry.current);
+    }, 0);
+  });
+
+  const totalXp = computed(() => {
+    return skillsXp.value + talentsXp.value + characteristicsXp.value;
+  });
+
+  const baseSkillsXp = computed(() => {
+    return Object.values(skills.value).reduce((sum, entry) => {
+      return sum + getSkillXpCost(entry.base);
+    }, 0);
+  });
+
+  const baseTalentsXp = computed(() => {
+    return Object.values(talents.value).reduce((sum, entry) => {
+      return sum + getTalentXpCost(entry.base);
+    }, 0);
+  });
+
+  const baseCharacteristicsXp = computed(() => {
+    return Object.values(characteristics.value).reduce((sum, entry) => {
+      return sum + getCharacteristicXpCost(entry.base);
+    }, 0);
+  });
+
+  const totalBaseXp = computed(() => {
+    return baseSkillsXp.value + baseTalentsXp.value + baseCharacteristicsXp.value;
+  });
+
+  const xpDelta = computed(() => {
+    return totalXp.value - totalBaseXp.value;
+  });
+
+  // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
@@ -76,8 +153,95 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     careers.value = [];
     activeTab.value = 'main';
     showBaseOverrideDropZone.value = true;
+    skills.value = {};
+    talents.value = {};
+    characteristics.value = {};
     isBusy.value = false;
     busyMessage.value = '';
+  }
+
+  function toSafeNonNegativeInteger(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.floor(value));
+  }
+
+  function hydrateAdvancementCategory(
+    existing: Record<string, AdvancementValue>,
+    incoming: Record<string, number>,
+    preserveCurrent: boolean,
+  ): Record<string, AdvancementValue> {
+    const next: Record<string, AdvancementValue> = {};
+
+    for (const [name, baseValueRaw] of Object.entries(incoming)) {
+      const baseValue = toSafeNonNegativeInteger(baseValueRaw);
+      const previous = existing[name];
+      next[name] = {
+        base: baseValue,
+        current:
+          preserveCurrent && previous ? toSafeNonNegativeInteger(previous.current) : baseValue,
+      };
+    }
+
+    return next;
+  }
+
+  /**
+   * Hydrates advancement baselines from generated state (base actor/career flow)
+   * while optionally preserving user-edited current values for matching entries.
+   */
+  function hydrateAdvancements(snapshot: AdvancementBaseSnapshot, preserveCurrent = true): void {
+    skills.value = hydrateAdvancementCategory(skills.value, snapshot.skills, preserveCurrent);
+    talents.value = hydrateAdvancementCategory(talents.value, snapshot.talents, preserveCurrent);
+    characteristics.value = hydrateAdvancementCategory(
+      characteristics.value,
+      snapshot.characteristics,
+      preserveCurrent,
+    );
+  }
+
+  function setSkillCurrent(name: string, current: number): void {
+    const existing = skills.value[name];
+    const base = existing?.base ?? 0;
+    skills.value[name] = {
+      base,
+      current: toSafeNonNegativeInteger(current),
+    };
+  }
+
+  function setTalentCurrent(name: string, current: number): void {
+    const existing = talents.value[name];
+    const base = existing?.base ?? 0;
+    talents.value[name] = {
+      base,
+      current: toSafeNonNegativeInteger(current),
+    };
+  }
+
+  function setCharacteristicCurrent(name: string, current: number): void {
+    const existing = characteristics.value[name];
+    const base = existing?.base ?? 0;
+    characteristics.value[name] = {
+      base,
+      current: toSafeNonNegativeInteger(current),
+    };
+  }
+
+  function adjustSkillCurrent(name: string, delta: number): void {
+    const existing = skills.value[name];
+    const nextValue = (existing?.current ?? 0) + delta;
+    setSkillCurrent(name, nextValue);
+  }
+
+  function adjustTalentCurrent(name: string, delta: number): void {
+    const existing = talents.value[name];
+    const nextValue = (existing?.current ?? 0) + delta;
+    setTalentCurrent(name, nextValue);
+  }
+
+  function adjustCharacteristicCurrent(name: string, delta: number): void {
+    const existing = characteristics.value[name];
+    const nextValue = (existing?.current ?? 0) + delta;
+    setCharacteristicCurrent(name, nextValue);
   }
 
   /**
@@ -133,6 +297,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     baseActorOverride.value = null;
     careers.value = [];
     showBaseOverrideDropZone.value = true;
+    skills.value = {};
+    talents.value = {};
+    characteristics.value = {};
   }
 
   return {
@@ -145,6 +312,15 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     isBusy,
     busyMessage,
     settings,
+    skills,
+    talents,
+    characteristics,
+    skillsXp,
+    talentsXp,
+    characteristicsXp,
+    totalXp,
+    totalBaseXp,
+    xpDelta,
     // Actions
     hydrateFromStorage,
     saveToStorage,
@@ -154,5 +330,12 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     removeCareer,
     moveCareer,
     resetWorkingNpc,
+    hydrateAdvancements,
+    setSkillCurrent,
+    setTalentCurrent,
+    setCharacteristicCurrent,
+    adjustSkillCurrent,
+    adjustTalentCurrent,
+    adjustCharacteristicCurrent,
   };
 });
