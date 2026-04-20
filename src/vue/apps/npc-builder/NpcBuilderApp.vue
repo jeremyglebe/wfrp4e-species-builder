@@ -83,7 +83,18 @@ const props = defineProps<{
  */
 const store = useNpcBuilderStore();
 
-const { baseActorId, baseActorOverride, careers, activeTab, settings, isBusy, busyMessage } =
+const {
+  baseActorId,
+  baseActorOverride,
+  careers,
+  activeTab,
+  settings,
+  isBusy,
+  busyMessage,
+  skills,
+  talents,
+  characteristics,
+} =
   storeToRefs(store);
 
 const careersSignature = computed(() => {
@@ -298,6 +309,136 @@ function toSafeNonNegativeInteger(value: unknown, fallback = 0): number {
   return Math.max(0, Math.floor(parsed));
 }
 
+function readNumberFromPaths(source: any, paths: string[]): number | null {
+  for (const path of paths) {
+    const segments = path.split('.');
+    let current: any = source;
+    for (const segment of segments) {
+      current = current?.[segment];
+    }
+    if (typeof current === 'number' && Number.isFinite(current)) {
+      return current;
+    }
+    if (typeof current === 'string' && current.trim().length > 0) {
+      const numeric = Number(current);
+      if (Number.isFinite(numeric)) return numeric;
+    }
+  }
+  return null;
+}
+
+async function applyBuilderAdvancementDeltasToActor(actor: any): Promise<void> {
+  if (!actor) return;
+
+  const itemUpdates: Array<Record<string, unknown>> = [];
+  const characteristicUpdates: Record<string, number> = {};
+
+  const skillsByName = new Map<string, any[]>();
+  const talentsByName = new Map<string, any[]>();
+
+  for (const item of actor.items?.contents ?? []) {
+    const type = String(item?.type ?? '').toLowerCase();
+    const name = String(item?.name ?? '').trim();
+    if (!name) continue;
+    if (type === 'skill') {
+      const existing = skillsByName.get(name) ?? [];
+      existing.push(item);
+      skillsByName.set(name, existing);
+    }
+    if (type === 'talent') {
+      const existing = talentsByName.get(name) ?? [];
+      existing.push(item);
+      talentsByName.set(name, existing);
+    }
+  }
+
+  for (const [name, entry] of Object.entries(skills.value)) {
+    const delta = toSafeNonNegativeInteger(entry.current) - toSafeNonNegativeInteger(entry.baseline);
+    if (!delta) continue;
+
+    const matchingSkills = skillsByName.get(name) ?? [];
+    for (const skillItem of matchingSkills) {
+      const currentAdvances = readNumberFromPaths(skillItem?.system, [
+        'advances.value',
+        'advances',
+        'level.value',
+        'level',
+      ]);
+      const nextAdvances = Math.max(0, toSafeNonNegativeInteger(currentAdvances ?? 0) + delta);
+      itemUpdates.push({
+        _id: skillItem.id,
+        'system.advances.value': nextAdvances,
+      });
+    }
+  }
+
+  for (const [name, entry] of Object.entries(talents.value)) {
+    const delta =
+      toSafeNonNegativeInteger(entry.current) - toSafeNonNegativeInteger(entry.effectiveRankForCost);
+    if (!delta) continue;
+
+    const matchingTalents = talentsByName.get(name) ?? [];
+    for (const talentItem of matchingTalents) {
+      const currentRank = readNumberFromPaths(talentItem?.system, [
+        'advances.value',
+        'advances',
+        'rank.value',
+        'rank',
+        'level.value',
+        'level',
+      ]);
+      const nextRank = Math.max(1, toSafeNonNegativeInteger(currentRank ?? 1, 1) + delta);
+      itemUpdates.push({
+        _id: talentItem.id,
+        'system.advances.value': nextRank,
+      });
+    }
+  }
+
+  const actorCharacteristics = actor?.system?.characteristics;
+  const actorCharacteristicKeys = Object.keys(actorCharacteristics ?? {});
+  const characteristicKeyByUpper = new Map(
+    actorCharacteristicKeys.map((key) => [String(key).toUpperCase(), key]),
+  );
+
+  for (const [characteristicName, entry] of Object.entries(characteristics.value)) {
+    const delta = toSafeNonNegativeInteger(entry.current) - toSafeNonNegativeInteger(entry.baseline);
+    if (!delta) continue;
+
+    const actorKey = characteristicKeyByUpper.get(characteristicName.toUpperCase());
+    if (!actorKey) continue;
+
+    const currentAdvances = readNumberFromPaths(actorCharacteristics?.[actorKey], [
+      'advances.value',
+      'advances',
+      'advance.value',
+      'advance',
+    ]);
+
+    const nextAdvances = Math.max(0, toSafeNonNegativeInteger(currentAdvances ?? 0) + delta);
+    const characteristicData = actorCharacteristics?.[actorKey];
+    const usesNestedAdvanceValue =
+      characteristicData &&
+      typeof characteristicData === 'object' &&
+      characteristicData.advances &&
+      typeof characteristicData.advances === 'object' &&
+      'value' in characteristicData.advances;
+
+    if (usesNestedAdvanceValue) {
+      characteristicUpdates[`system.characteristics.${actorKey}.advances.value`] = nextAdvances;
+    } else {
+      characteristicUpdates[`system.characteristics.${actorKey}.advances`] = nextAdvances;
+    }
+  }
+
+  if (itemUpdates.length) {
+    await actor.updateEmbeddedDocuments('Item', itemUpdates);
+  }
+  if (Object.keys(characteristicUpdates).length) {
+    await actor.update(characteristicUpdates);
+  }
+}
+
 async function syncAdvancementsFromBuildInputs(): Promise<void> {
   const token = ++advancementHydrationToken;
   const baseActor = await resolveBaseActor();
@@ -406,6 +547,9 @@ async function buildNPC(): Promise<void> {
         await createdActor.createEmbeddedDocuments('Item', [careerItemData]);
       }
     }
+
+    busyMessage.value = 'Applying advancement edits...';
+    await applyBuilderAdvancementDeltasToActor(createdActor);
 
     await new Promise((resolve) => setTimeout(resolve, 300));
 

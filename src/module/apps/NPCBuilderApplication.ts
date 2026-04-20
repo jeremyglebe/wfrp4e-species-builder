@@ -1,4 +1,4 @@
-import NPCBuilderApp from '../../vue/apps/NPCBuilderApp.vue';
+import NpcBuilderApp from '../../vue/apps/npc-builder/NpcBuilderApp.vue';
 import { pinia } from '../../vue/pinia';
 import { useNpcBuilderStore } from '../../vue/stores';
 import { loadNPCBuilderSettings } from '../services/settings/npcs';
@@ -30,7 +30,7 @@ export class NPCBuilderApplication extends FoundryVueApplication {
   };
 
   protected override getVueComponent() {
-    return NPCBuilderApp;
+    return NpcBuilderApp;
   }
 
   protected override async getVueProps(): Promise<Record<string, unknown>> {
