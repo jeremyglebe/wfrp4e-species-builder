@@ -23,8 +23,7 @@
                         <input :value="entry.current" type="number" min="0" class="npc-builder__quantity-input"
                             @input="setSkillCurrent(entry.name, readInputValue($event))" />
                         <button type="button" class="npc-builder__button npc-builder__button--small"
-                            :title="`+${skillNextCost(entry.current)} XP`"
-                            @click="adjustSkillCurrent(entry.name, 1)">
+                            :title="`+${skillNextCost(entry.current)} XP`" @click="adjustSkillCurrent(entry.name, 1)">
                             +
                         </button>
                     </div>
@@ -47,7 +46,8 @@
                 <div v-for="entry in talentRows" :key="`talent-${entry.name}`" class="npc-builder__adv-row">
                     <div class="npc-builder__adv-name">
                         {{ entry.name }}
-                        <span v-if="entry.sourceSummary" class="npc-builder__adv-source-summary">({{ entry.sourceSummary }})</span>
+                        <span v-if="entry.sourceSummary" class="npc-builder__adv-source-summary">({{ entry.sourceSummary
+                            }})</span>
                     </div>
                     <div class="npc-builder__adv-meta">Base {{ entry.effectiveRankForCost }}</div>
                     <div class="npc-builder__adv-controls">
@@ -59,8 +59,7 @@
                         <input :value="entry.current" type="number" min="0" class="npc-builder__quantity-input"
                             @input="setTalentCurrent(entry.name, readInputValue($event))" />
                         <button type="button" class="npc-builder__button npc-builder__button--small"
-                            :title="`+${talentNextCost(entry.current)} XP`"
-                            @click="adjustTalentCurrent(entry.name, 1)">
+                            :title="`+${talentNextCost(entry.current)} XP`" @click="adjustTalentCurrent(entry.name, 1)">
                             +
                         </button>
                     </div>
