@@ -35,6 +35,13 @@ export interface AdvancementValue {
   effectiveRankForCost: number;
   /** Whether this entry is editable by the user in the UI */
   editable: boolean;
+  /** Source breakdown used for explanatory UI, primarily for talents. */
+  sources: AdvancementSourceCount[];
+}
+
+export interface AdvancementSourceCount {
+  label: string;
+  count: number;
 }
 
 /**
@@ -48,6 +55,8 @@ export interface CareerAdvancementBaseline {
   talents: Record<string, number>;
   /** Career-derived characteristic advances: keyed by characteristic name, value is +5 per career that grants it */
   characteristics: Record<string, number>;
+  /** Career-derived talent source counts used for UI explanations. */
+  talentSources: Record<string, AdvancementSourceCount[]>;
 }
 
 /**
@@ -55,6 +64,8 @@ export interface CareerAdvancementBaseline {
  * Captured from the selected base actor for optional inclusion.
  */
 export interface BaseActorAdvancementSnapshot {
+  /** Base actor display name for source breakdown text */
+  actorName: string;
   /** Base actor skill advances: keyed by skill name */
   skills: Record<string, number>;
   /** Base actor talent ranks: keyed by talent name */
@@ -225,6 +236,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       skills: {},
       talents: {},
       characteristics: {},
+      talentSources: {},
     };
 
     for (const careerEntry of careers.value) {
@@ -232,6 +244,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       if (!careerItem || typeof careerItem !== 'object') continue;
 
       const careerItemAny = careerItem as any;
+      const quantity = Math.max(1, Math.floor(Number(careerEntry.quantity) || 1));
 
       // Read career skills from system.skills array
       const careerSkills = careerItemAny?.system?.skills;
@@ -239,7 +252,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         for (const skillName of careerSkills) {
           const trimmedName = String(skillName ?? '').trim();
           if (trimmedName) {
-            baseline.skills[trimmedName] = (baseline.skills[trimmedName] ?? 0) + 5;
+            baseline.skills[trimmedName] = (baseline.skills[trimmedName] ?? 0) + 5 * quantity;
           }
         }
       }
@@ -250,7 +263,21 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         for (const talentName of careerTalents) {
           const trimmedName = String(talentName ?? '').trim();
           if (trimmedName) {
-            baseline.talents[trimmedName] = (baseline.talents[trimmedName] ?? 0) + 1;
+            baseline.talents[trimmedName] = (baseline.talents[trimmedName] ?? 0) + quantity;
+
+            const existingSources = baseline.talentSources[trimmedName] ?? [];
+            const existingCareerSource = existingSources.find(
+              (source) => source.label === careerEntry.name,
+            );
+            if (existingCareerSource) {
+              existingCareerSource.count += quantity;
+            } else {
+              existingSources.push({
+                label: careerEntry.name,
+                count: quantity,
+              });
+            }
+            baseline.talentSources[trimmedName] = existingSources;
           }
         }
       }
@@ -265,7 +292,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
             const normalizedKey = String(key).toUpperCase().trim();
             if (normalizedKey) {
               baseline.characteristics[normalizedKey] =
-                (baseline.characteristics[normalizedKey] ?? 0) + 5;
+                (baseline.characteristics[normalizedKey] ?? 0) + 5 * quantity;
             }
           }
         }
@@ -280,6 +307,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
    */
   function readBaseActorAdvancements(baseActor: any | null): BaseActorAdvancementSnapshot {
     const snapshot: BaseActorAdvancementSnapshot = {
+      actorName: String((baseActor as any)?.name ?? '').trim(),
       skills: {},
       talents: {},
       characteristics: {},
@@ -391,6 +419,28 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       characteristics: {} as Record<string, AdvancementValue>,
     };
 
+    function getTalentSourceCounts(talentName: string): AdvancementSourceCount[] {
+      const sourceCounts: AdvancementSourceCount[] = [];
+      const baseCount = baseActorValues.talents[talentName] ?? 0;
+      const baseLabel = baseActorValues.actorName;
+
+      if (baseCount > 0 && baseLabel) {
+        sourceCounts.push({
+          label: baseLabel,
+          count: baseCount,
+        });
+      }
+
+      for (const source of careerBaseline.talentSources[talentName] ?? []) {
+        sourceCounts.push({
+          label: source.label,
+          count: source.count,
+        });
+      }
+
+      return sourceCounts;
+    }
+
     // Merge skills
     const allSkillKeys = new Set([
       ...Object.keys(careerBaseline.skills),
@@ -412,6 +462,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         includedFromBase: fromBaseExists,
         effectiveRankForCost: 0, // Not used for skills
         editable: true, // Skills are always editable if shown
+        sources: [],
       };
     }
 
@@ -439,6 +490,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         includedFromBase: fromBaseExists,
         effectiveRankForCost, // For cost calculation
         editable,
+        sources: getTalentSourceCounts(talentName),
       };
     }
 
@@ -469,6 +521,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         includedFromBase: fromBaseExists,
         effectiveRankForCost: 0, // Not used for characteristics
         editable: true, // Always editable if shown
+        sources: [],
       };
     }
 
@@ -492,7 +545,10 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const existing = skills.value[name];
       nextSkills[name] = {
         ...newEntry,
-        current: preserveCurrent && existing ? existing.current : newEntry.current,
+        current:
+          preserveCurrent && existing
+            ? Math.max(toSafeNonNegativeInteger(existing.current), newEntry.current)
+            : newEntry.current,
       };
     }
     skills.value = nextSkills;
@@ -503,7 +559,10 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const existing = talents.value[name];
       nextTalents[name] = {
         ...newEntry,
-        current: preserveCurrent && existing ? existing.current : newEntry.current,
+        current:
+          preserveCurrent && existing
+            ? Math.max(toSafeNonNegativeInteger(existing.current), newEntry.current)
+            : newEntry.current,
       };
     }
     talents.value = nextTalents;
@@ -514,7 +573,10 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const existing = characteristics.value[name];
       nextCharacteristics[name] = {
         ...newEntry,
-        current: preserveCurrent && existing ? existing.current : newEntry.current,
+        current:
+          preserveCurrent && existing
+            ? Math.max(toSafeNonNegativeInteger(existing.current), newEntry.current)
+            : newEntry.current,
       };
     }
     characteristics.value = nextCharacteristics;

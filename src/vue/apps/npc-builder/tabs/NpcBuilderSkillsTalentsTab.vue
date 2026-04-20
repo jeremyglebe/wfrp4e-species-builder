@@ -16,12 +16,14 @@
                     <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
+                            :title="`-${skillPrevRefund(entry.current)} XP`"
                             @click="adjustSkillCurrent(entry.name, -1)">
                             -
                         </button>
                         <input :value="entry.current" type="number" min="0" class="npc-builder__quantity-input"
                             @input="setSkillCurrent(entry.name, readInputValue($event))" />
                         <button type="button" class="npc-builder__button npc-builder__button--small"
+                            :title="`+${skillNextCost(entry.current)} XP`"
                             @click="adjustSkillCurrent(entry.name, 1)">
                             +
                         </button>
@@ -43,17 +45,21 @@
 
             <div v-else class="npc-builder__adv-list">
                 <div v-for="entry in talentRows" :key="`talent-${entry.name}`" class="npc-builder__adv-row">
-                    <div class="npc-builder__adv-name">{{ entry.name }}</div>
-                    <div class="npc-builder__adv-meta">Base {{ entry.baseline }} / Effective {{
-                        entry.effectiveRankForCost }}</div>
+                    <div class="npc-builder__adv-name">
+                        {{ entry.name }}
+                        <span v-if="entry.sourceSummary" class="npc-builder__adv-source-summary">({{ entry.sourceSummary }})</span>
+                    </div>
+                    <div class="npc-builder__adv-meta">Base {{ entry.effectiveRankForCost }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
+                            :title="`-${talentPrevRefund(entry.current)} XP`"
                             @click="adjustTalentCurrent(entry.name, -1)">
                             -
                         </button>
                         <input :value="entry.current" type="number" min="0" class="npc-builder__quantity-input"
                             @input="setTalentCurrent(entry.name, readInputValue($event))" />
                         <button type="button" class="npc-builder__button npc-builder__button--small"
+                            :title="`+${talentNextCost(entry.current)} XP`"
                             @click="adjustTalentCurrent(entry.name, 1)">
                             +
                         </button>
@@ -80,12 +86,14 @@
                     <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
                     <div class="npc-builder__adv-controls">
                         <button type="button" class="npc-builder__button npc-builder__button--small"
+                            :title="`-${characteristicPrevRefund(entry.current)} XP`"
                             @click="adjustCharacteristicCurrent(entry.name, -1)">
                             -
                         </button>
                         <input :value="entry.current" type="number" min="0" class="npc-builder__quantity-input"
                             @input="setCharacteristicCurrent(entry.name, readInputValue($event))" />
                         <button type="button" class="npc-builder__button npc-builder__button--small"
+                            :title="`+${characteristicNextCost(entry.current)} XP`"
                             @click="adjustCharacteristicCurrent(entry.name, 1)">
                             +
                         </button>
@@ -171,7 +179,7 @@ const skillRows = computed(() => {
             name,
             baseline: value.baseline,
             current: value.current,
-            xp: getTalentXpCost(value.current) - getTalentXpCost(value.baseline),
+            xp: getSkillXpCost(value.current),
             includedFromCareer: value.includedFromCareer,
             includedFromBase: value.includedFromBase,
         }))
@@ -184,10 +192,11 @@ const talentRows = computed(() => {
             name,
             baseline: value.baseline,
             current: value.current,
-            xp: getTalentXpCost(value.current) - getTalentXpCost(value.effectiveRankForCost),
+            xp: getTalentXpCost(value.current),
             includedFromCareer: value.includedFromCareer,
             includedFromBase: value.includedFromBase,
             effectiveRankForCost: value.effectiveRankForCost,
+            sourceSummary: formatTalentSources(value.sources),
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -198,7 +207,7 @@ const characteristicRows = computed(() => {
             name,
             baseline: value.baseline,
             current: value.current,
-            xp: getTalentXpCost(value.current) - getTalentXpCost(value.baseline),
+            xp: getCharacteristicXpCost(value.current),
             includedFromCareer: value.includedFromCareer,
             includedFromBase: value.includedFromBase,
         }))
@@ -212,5 +221,36 @@ function readInputValue(event: Event): number {
     const parsed = Number(input.value);
     if (!Number.isFinite(parsed)) return 0;
     return Math.max(0, Math.floor(parsed));
+}
+
+function formatTalentSources(sources: Array<{ label: string; count: number }>): string {
+    return sources
+        .filter((source) => source.label.trim().length > 0 && source.count > 0)
+        .map((source) => `${source.label} ${source.count}`)
+        .join(' / ');
+}
+
+function skillNextCost(current: number): number {
+    return getSkillXpCost(current + 1) - getSkillXpCost(current);
+}
+function skillPrevRefund(current: number): number {
+    if (current <= 0) return 0;
+    return getSkillXpCost(current) - getSkillXpCost(current - 1);
+}
+
+function talentNextCost(current: number): number {
+    return getTalentXpCost(current + 1) - getTalentXpCost(current);
+}
+function talentPrevRefund(current: number): number {
+    if (current <= 0) return 0;
+    return getTalentXpCost(current) - getTalentXpCost(current - 1);
+}
+
+function characteristicNextCost(current: number): number {
+    return getCharacteristicXpCost(current + 1) - getCharacteristicXpCost(current);
+}
+function characteristicPrevRefund(current: number): number {
+    if (current <= 0) return 0;
+    return getCharacteristicXpCost(current) - getCharacteristicXpCost(current - 1);
 }
 </script>
