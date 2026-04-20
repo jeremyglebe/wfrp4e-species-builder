@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+﻿import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../types/module';
 import {
@@ -10,6 +10,14 @@ import {
   getSkillXpCost,
   getTalentXpCost,
 } from '../apps/npc-builder/xp-cost';
+import {
+  allocateXp,
+  type AllocatableEntry,
+  type AllocationStrategyKey,
+  MAX_CHARACTERISTIC_ADVANCES,
+  MAX_SKILL_ADVANCES,
+  MAX_TALENT_RANKS,
+} from '../apps/npc-builder/xp-allocation';
 
 /**
  * Tracks advancement sources and values for a single skill, talent, or characteristic.
@@ -74,6 +82,8 @@ export interface BaseActorAdvancementSnapshot {
   characteristics: Record<string, number>;
 }
 
+export type AllocationTargetKind = 'total' | 'delta';
+
 /**
  * NPC Builder Pinia store.
  *
@@ -82,7 +92,7 @@ export interface BaseActorAdvancementSnapshot {
  *
  * Persistence responsibilities (loading from / saving to Foundry world
  * settings) are delegated to the settings service in
- * src/module/services/settings/npcs.ts — this store does not call
+ * src/module/services/settings/npcs.ts â€” this store does not call
  * game.settings directly.
  *
  * Lifecycle: hydrateFromStorage() is called by NPCBuilderApplication
@@ -91,7 +101,7 @@ export interface BaseActorAdvancementSnapshot {
  */
 export const useNpcBuilderStore = defineStore('npc-builder', () => {
   // ---------------------------------------------------------------------------
-  // Working state — resets each time the app opens via hydrateFromStorage()
+  // Working state â€” resets each time the app opens via hydrateFromStorage()
   // ---------------------------------------------------------------------------
 
   /** ID of the actor currently selected in the base folder dropdown. */
@@ -110,7 +120,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   const showBaseOverrideDropZone = ref(true);
 
   // ---------------------------------------------------------------------------
-  // Busy state — managed by the build orchestration logic in the component
+  // Busy state â€” managed by the build orchestration logic in the component
   // ---------------------------------------------------------------------------
 
   /** True while a long-running async operation (e.g. NPC build) is in progress. */
@@ -120,7 +130,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   const busyMessage = ref('');
 
   // ---------------------------------------------------------------------------
-  // Persisted settings — loaded from world settings on each open
+  // Persisted settings â€” loaded from world settings on each open
   // ---------------------------------------------------------------------------
 
   /** NPC Builder configuration (folder names, behavior flags). */
@@ -138,6 +148,37 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
   /** Characteristic advancements: base from generated state + current user-edited value. */
   const characteristics = ref<Record<string, AdvancementValue>>({});
+
+  // ---------------------------------------------------------------------------
+  // Auto-allocation state
+  // ---------------------------------------------------------------------------
+
+  /** XP target value entered by the user for auto-allocation. */
+  const targetXp = ref(0);
+
+  /** Whether targetXp is interpreted as total final XP or XP delta budget. */
+  const allocationTargetKind = ref<AllocationTargetKind>('total');
+
+  /** Currently selected auto-allocation strategy. */
+  const allocationStrategy = ref<AllocationStrategyKey>('evenly');
+
+  /**
+   * Snapshot of `current` values saved immediately before the last
+   * auto-allocation was applied. Null when no allocation is active.
+   * Restored by resetXpAllocation().
+   */
+  const preAllocationSnapshot = ref<{
+    skills: Record<string, number>;
+    talents: Record<string, number>;
+    characteristics: Record<string, number>;
+  } | null>(null);
+
+  /** XP from the last allocation run that could not be spent due to caps. */
+  const lastAllocationUnspent = ref(0);
+
+  // ---------------------------------------------------------------------------
+  // Derived XP computeds
+  // ---------------------------------------------------------------------------
 
   const skillsXp = computed(() => {
     return Object.values(skills.value).reduce((sum, entry) => {
@@ -175,7 +216,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
   const baseTalentsXp = computed(() => {
     return Object.values(talents.value).reduce((sum, entry) => {
-      // For talents, use effectiveRankForCost which includes base contributions
       return sum + getTalentXpCost(entry.effectiveRankForCost);
     }, 0);
   });
@@ -206,7 +246,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
    */
   function hydrateFromStorage(savedSettings: NPCBuilderSettings): void {
     settings.value = savedSettings;
-    // Reset transient working state so each open starts fresh
     baseActorId.value = '';
     baseActorOverride.value = null;
     careers.value = [];
@@ -215,6 +254,11 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skills.value = {};
     talents.value = {};
     characteristics.value = {};
+    targetXp.value = 0;
+    allocationTargetKind.value = 'total';
+    allocationStrategy.value = 'evenly';
+    preAllocationSnapshot.value = null;
+    lastAllocationUnspent.value = 0;
     isBusy.value = false;
     busyMessage.value = '';
   }
@@ -229,7 +273,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
    * from all queued careers. Each career contributes:
    * - +5 advances to each of its skills
    * - +1 rank to each of its talents
-   * - availability for each of its characteristics
+   * - +5 advances to each characteristic it grants (system.characteristics[key] === true)
    */
   async function buildCareerAdvancements(): Promise<CareerAdvancementBaseline> {
     const baseline: CareerAdvancementBaseline = {
@@ -246,7 +290,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const careerItemAny = careerItem as any;
       const quantity = Math.max(1, Math.floor(Number(careerEntry.quantity) || 1));
 
-      // Read career skills from system.skills array
       const careerSkills = careerItemAny?.system?.skills;
       if (Array.isArray(careerSkills)) {
         for (const skillName of careerSkills) {
@@ -257,7 +300,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         }
       }
 
-      // Read career talents from system.talents array
       const careerTalents = careerItemAny?.system?.talents;
       if (Array.isArray(careerTalents)) {
         for (const talentName of careerTalents) {
@@ -272,22 +314,16 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
             if (existingCareerSource) {
               existingCareerSource.count += quantity;
             } else {
-              existingSources.push({
-                label: careerEntry.name,
-                count: quantity,
-              });
+              existingSources.push({ label: careerEntry.name, count: quantity });
             }
             baseline.talentSources[trimmedName] = existingSources;
           }
         }
       }
 
-      // Read career characteristics - only include those where value is true
-      // Each career contributes +5 advances per characteristic it grants
       const careerCharacteristics = careerItemAny?.system?.characteristics;
       if (careerCharacteristics && typeof careerCharacteristics === 'object') {
         for (const [key, value] of Object.entries(careerCharacteristics as Record<string, any>)) {
-          // Only include if explicitly true
           if (value === true) {
             const normalizedKey = String(key).toUpperCase().trim();
             if (normalizedKey) {
@@ -317,13 +353,11 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
     const baseActorAny = baseActor as any;
 
-    // Read characteristics
-    const characteristics = baseActorAny?.system?.characteristics;
-    if (characteristics && typeof characteristics === 'object') {
-      for (const [key, value] of Object.entries(characteristics as Record<string, any>)) {
+    const actorCharacteristics = baseActorAny?.system?.characteristics;
+    if (actorCharacteristics && typeof actorCharacteristics === 'object') {
+      for (const [key, value] of Object.entries(actorCharacteristics as Record<string, any>)) {
         const normalizedKey = String(key).toUpperCase().trim();
         if (!normalizedKey) continue;
-
         const advances = readNumberFromPaths(value, [
           'advances.value',
           'advances',
@@ -334,7 +368,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       }
     }
 
-    // Read skills and talents from items
     if (Array.isArray(baseActorAny?.items?.contents)) {
       for (const item of baseActorAny.items.contents) {
         const itemType = String(item?.type ?? '').toLowerCase();
@@ -376,34 +409,22 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     for (const path of paths) {
       const segments = path.split('.');
       let current: any = source;
-
       for (const segment of segments) {
         current = current?.[segment];
       }
-
       if (typeof current === 'number' && Number.isFinite(current)) {
         return current;
       }
-
       if (typeof current === 'string' && current.trim().length > 0) {
         const numeric = Number(current);
-        if (Number.isFinite(numeric)) {
-          return numeric;
-        }
+        if (Number.isFinite(numeric)) return numeric;
       }
     }
-
     return null;
   }
 
   /**
-   * Merges career-derived baselines with optional base actor advancement values
-   * to create the final AdvancementValue entries for skills, talents, and characteristics.
-   *
-   * This is the core logic that implements the corrected advancement model:
-   * - Skills: career baseline only, base actor values ignored for advancement tracking
-   * - Talents: career baseline + base actor ranks for cost calculation
-   * - Characteristics: career-granted only, base actor values don't count as advances
+   * Merges career-derived baselines with optional base actor advancement values.
    */
   function mergeAdvancementsWithSettings(
     careerBaseline: CareerAdvancementBaseline,
@@ -423,25 +444,16 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const sourceCounts: AdvancementSourceCount[] = [];
       const baseCount = baseActorValues.talents[talentName] ?? 0;
       const baseLabel = baseActorValues.actorName;
-
       if (baseCount > 0 && baseLabel) {
-        sourceCounts.push({
-          label: baseLabel,
-          count: baseCount,
-        });
+        sourceCounts.push({ label: baseLabel, count: baseCount });
       }
-
       for (const source of careerBaseline.talentSources[talentName] ?? []) {
-        sourceCounts.push({
-          label: source.label,
-          count: source.count,
-        });
+        sourceCounts.push({ label: source.label, count: source.count });
       }
-
       return sourceCounts;
     }
 
-    // Merge skills
+    // Skills
     const allSkillKeys = new Set([
       ...Object.keys(careerBaseline.skills),
       ...Object.keys(baseActorValues.skills),
@@ -450,23 +462,22 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const fromCareer = careerBaseline.skills[skillName] ?? 0;
       const fromBase = baseActorValues.skills[skillName] ?? 0;
       const fromBaseExists = fromBase > 0;
-
       const shouldShow =
         fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseSkills);
       if (!shouldShow) continue;
 
       result.skills[skillName] = {
-        baseline: fromCareer, // Skills: only career counts as baseline
-        current: fromCareer, // Start from career baseline
+        baseline: fromCareer,
+        current: fromCareer,
         includedFromCareer: fromCareer > 0,
         includedFromBase: fromBaseExists,
-        effectiveRankForCost: 0, // Not used for skills
-        editable: true, // Skills are always editable if shown
+        effectiveRankForCost: 0,
+        editable: true,
         sources: [],
       };
     }
 
-    // Merge talents
+    // Talents
     const allTalentKeys = new Set([
       ...Object.keys(careerBaseline.talents),
       ...Object.keys(baseActorValues.talents),
@@ -475,26 +486,23 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const fromCareer = careerBaseline.talents[talentName] ?? 0;
       const fromBase = baseActorValues.talents[talentName] ?? 0;
       const fromBaseExists = fromBase > 0;
-
       const editable = fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseTalents);
-      const shouldShow = editable;
-      if (!shouldShow) continue;
+      if (!editable) continue;
 
-      // For talents: effective rank always includes base contributions (even if not editable)
       const effectiveRankForCost = fromCareer + (fromBaseExists ? fromBase : 0);
 
       result.talents[talentName] = {
-        baseline: fromCareer, // Talents: baseline is career-only
-        current: effectiveRankForCost, // Start from effective rank (career + base)
+        baseline: fromCareer,
+        current: effectiveRankForCost,
         includedFromCareer: fromCareer > 0,
         includedFromBase: fromBaseExists,
-        effectiveRankForCost, // For cost calculation
+        effectiveRankForCost,
         editable,
         sources: getTalentSourceCounts(talentName),
       };
     }
 
-    // Merge characteristics
+    // Characteristics
     const allCharKeys = new Set([
       ...Object.keys(careerBaseline.characteristics),
       ...Object.keys(baseActorValues.characteristics),
@@ -504,23 +512,17 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       const fromBase = baseActorValues.characteristics[charName] ?? 0;
       const fromCareerExists = fromCareer > 0;
       const fromBaseExists = fromBase > 0;
-
       const shouldShow =
         fromCareerExists || (fromBaseExists && settings.value.allowUpgradeBaseCharacteristics);
       if (!shouldShow) continue;
 
-      // Career characteristics start at their career-derived baseline (typically 5 per career)
-      // Base characteristic values do not count as prior advances (they start from 0)
-      const baseline = fromCareer;
-      const current = fromCareer; // Start from career baseline
-
       result.characteristics[charName] = {
-        baseline,
-        current,
+        baseline: fromCareer,
+        current: fromCareer,
         includedFromCareer: fromCareerExists,
         includedFromBase: fromBaseExists,
-        effectiveRankForCost: 0, // Not used for characteristics
-        editable: true, // Always editable if shown
+        effectiveRankForCost: 0,
+        editable: true,
         sources: [],
       };
     }
@@ -529,9 +531,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   }
 
   /**
-   * Hydrates all advancement categories (skills, talents, characteristics) based on
-   * queued careers and optional base actor. Uses the corrected career-baseline model.
-   *
+   * Hydrates all advancement categories based on queued careers and optional base actor.
    * Preserves user-edited current values where possible.
    */
   async function hydrateAdvancements(baseActor: any | null, preserveCurrent = true): Promise<void> {
@@ -539,7 +539,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     const baseActorValues = readBaseActorAdvancements(baseActor);
     const merged = mergeAdvancementsWithSettings(careerBaseline, baseActorValues);
 
-    // Update skills while optionally preserving user edits
     const nextSkills: Record<string, AdvancementValue> = {};
     for (const [name, newEntry] of Object.entries(merged.skills)) {
       const existing = skills.value[name];
@@ -553,7 +552,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     }
     skills.value = nextSkills;
 
-    // Update talents while optionally preserving user edits
     const nextTalents: Record<string, AdvancementValue> = {};
     for (const [name, newEntry] of Object.entries(merged.talents)) {
       const existing = talents.value[name];
@@ -567,7 +565,6 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     }
     talents.value = nextTalents;
 
-    // Update characteristics while optionally preserving user edits
     const nextCharacteristics: Record<string, AdvancementValue> = {};
     for (const [name, newEntry] of Object.entries(merged.characteristics)) {
       const existing = characteristics.value[name];
@@ -585,56 +582,141 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   function setSkillCurrent(name: string, current: number): void {
     const existing = skills.value[name];
     if (!existing) return;
-    skills.value[name] = {
-      ...existing,
-      current: toSafeNonNegativeInteger(current),
-    };
+    skills.value[name] = { ...existing, current: toSafeNonNegativeInteger(current) };
   }
 
   function setTalentCurrent(name: string, current: number): void {
     const existing = talents.value[name];
     if (!existing) return;
-    talents.value[name] = {
-      ...existing,
-      current: toSafeNonNegativeInteger(current),
-    };
+    talents.value[name] = { ...existing, current: toSafeNonNegativeInteger(current) };
   }
 
   function setCharacteristicCurrent(name: string, current: number): void {
     const existing = characteristics.value[name];
     if (!existing) return;
-    characteristics.value[name] = {
-      ...existing,
-      current: toSafeNonNegativeInteger(current),
-    };
+    characteristics.value[name] = { ...existing, current: toSafeNonNegativeInteger(current) };
   }
 
   function adjustSkillCurrent(name: string, delta: number): void {
     const existing = skills.value[name];
     if (!existing) return;
-    const nextValue = existing.current + Math.floor(delta);
-    setSkillCurrent(name, nextValue);
+    setSkillCurrent(name, existing.current + Math.floor(delta));
   }
 
   function adjustTalentCurrent(name: string, delta: number): void {
     const existing = talents.value[name];
     if (!existing) return;
-    const nextValue = existing.current + Math.floor(delta);
-    setTalentCurrent(name, nextValue);
+    setTalentCurrent(name, existing.current + Math.floor(delta));
   }
 
   function adjustCharacteristicCurrent(name: string, delta: number): void {
     const existing = characteristics.value[name];
     if (!existing) return;
-    const nextValue = existing.current + Math.floor(delta);
-    setCharacteristicCurrent(name, nextValue);
+    setCharacteristicCurrent(name, existing.current + Math.floor(delta));
+  }
+
+  /**
+   * Applies the current auto-allocation strategy to distribute `targetXp` XP
+   * across all editable entries, starting from each entry's effective baseline.
+   *
+   * A snapshot of current `current` values is saved so resetXpAllocation() can
+   * restore the manually edited state.
+   */
+  function applyXpAllocation(): void {
+    preAllocationSnapshot.value = {
+      skills: Object.fromEntries(Object.entries(skills.value).map(([k, v]) => [k, v.current])),
+      talents: Object.fromEntries(Object.entries(talents.value).map(([k, v]) => [k, v.current])),
+      characteristics: Object.fromEntries(
+        Object.entries(characteristics.value).map(([k, v]) => [k, v.current]),
+      ),
+    };
+
+    const entries: AllocatableEntry[] = [];
+
+    for (const [name, entry] of Object.entries(skills.value)) {
+      if (!entry.editable) continue;
+      entries.push({
+        key: `skill:${name}`,
+        category: 'skill',
+        start: entry.baseline,
+        max: MAX_SKILL_ADVANCES,
+        getCostUpTo: getSkillXpCost,
+      });
+    }
+
+    for (const [name, entry] of Object.entries(talents.value)) {
+      if (!entry.editable) continue;
+      entries.push({
+        key: `talent:${name}`,
+        category: 'talent',
+        start: entry.effectiveRankForCost,
+        max: MAX_TALENT_RANKS,
+        getCostUpTo: getTalentXpCost,
+      });
+    }
+
+    for (const [name, entry] of Object.entries(characteristics.value)) {
+      if (!entry.editable) continue;
+      entries.push({
+        key: `char:${name}`,
+        category: 'characteristic',
+        start: entry.baseline,
+        max: MAX_CHARACTERISTIC_ADVANCES,
+        getCostUpTo: getCharacteristicXpCost,
+      });
+    }
+
+    const sanitizedTarget = toSafeNonNegativeInteger(targetXp.value);
+    if (allocationTargetKind.value === 'total') {
+      targetXp.value = Math.max(sanitizedTarget, totalBaseXp.value);
+    } else {
+      targetXp.value = sanitizedTarget;
+    }
+
+    const budget =
+      allocationTargetKind.value === 'total'
+        ? Math.max(0, targetXp.value - totalBaseXp.value)
+        : targetXp.value;
+
+    const result = allocateXp(entries, budget, allocationStrategy.value);
+    lastAllocationUnspent.value = result.unspent;
+
+    for (const entry of entries) {
+      const finalValue = result.values[entry.key] ?? entry.start;
+      if (entry.category === 'skill') {
+        setSkillCurrent(entry.key.slice('skill:'.length), finalValue);
+      } else if (entry.category === 'talent') {
+        setTalentCurrent(entry.key.slice('talent:'.length), finalValue);
+      } else {
+        setCharacteristicCurrent(entry.key.slice('char:'.length), finalValue);
+      }
+    }
+  }
+
+  /**
+   * Restores all `current` values to the snapshot saved before the last
+   * auto-allocation was applied. No-ops if no allocation is active.
+   */
+  function resetXpAllocation(): void {
+    const snapshot = preAllocationSnapshot.value;
+    if (!snapshot) return;
+
+    for (const [name, current] of Object.entries(snapshot.skills)) {
+      setSkillCurrent(name, current);
+    }
+    for (const [name, current] of Object.entries(snapshot.talents)) {
+      setTalentCurrent(name, current);
+    }
+    for (const [name, current] of Object.entries(snapshot.characteristics)) {
+      setCharacteristicCurrent(name, current);
+    }
+
+    preAllocationSnapshot.value = null;
+    lastAllocationUnspent.value = 0;
   }
 
   /**
    * Persists the current settings to Foundry world storage.
-   *
-   * Delegates to the settings service — this store does not write to
-   * game.settings directly.
    */
   async function saveToStorage(): Promise<void> {
     await saveNPCBuilderSettings(settings.value);
@@ -686,6 +768,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skills.value = {};
     talents.value = {};
     characteristics.value = {};
+    preAllocationSnapshot.value = null;
+    lastAllocationUnspent.value = 0;
   }
 
   return {
@@ -701,6 +785,12 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skills,
     talents,
     characteristics,
+    targetXp,
+    allocationTargetKind,
+    allocationStrategy,
+    preAllocationSnapshot,
+    lastAllocationUnspent,
+    // Computed
     skillsXp,
     talentsXp,
     characteristicsXp,
@@ -723,5 +813,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     adjustSkillCurrent,
     adjustTalentCurrent,
     adjustCharacteristicCurrent,
+    applyXpAllocation,
+    resetXpAllocation,
   };
 });
