@@ -89,6 +89,15 @@
                 Base talent ranks always count toward cost scaling, even if this is disabled. This only controls
                 visibility and editability.
             </div>
+
+            <label class="npc-builder__checkbox">
+                <input v-model="settings.allowUpgradeBaseTrappings" type="checkbox" />
+                <span>Allow upgrading base actor trappings</span>
+            </label>
+            <div class="npc-builder__hint">
+                When enabled, base actor trappings appear in the Trappings tab and can be edited or removed for this
+                NPC.
+            </div>
         </div>
     </section>
 </template>

@@ -58,6 +58,33 @@ export interface AdvancementSourceCount {
   count: number;
 }
 
+export interface NpcBuilderTrappingEntry {
+  key: string;
+  name: string;
+  originalName: string;
+  quantity: number;
+  itemType: string;
+  sourceKind: 'career' | 'base' | 'user';
+  includedFromCareer: boolean;
+  includedFromBase: boolean;
+  includedFromUser: boolean;
+  editable: boolean;
+  ignoredFromCareer: boolean;
+  ignored: boolean;
+  sourceSummary: string;
+  careerSources: AdvancementSourceCount[];
+  documentUuid: string | null;
+  sourceData: Record<string, unknown> | null;
+  xp: number;
+  /**
+   * Whether this entry was resolved to a real compendium/world item.
+   * null  = resolution not applicable (base/user entries)
+   * true  = item found in compendium or world
+   * false = item not found; build will create a blank item unless ignored
+   */
+  resolved: boolean | null;
+}
+
 /**
  * Career-derived advancement baseline snapshot.
  * Built directly from queued careers, before base actor inclusion.
@@ -75,6 +102,10 @@ export interface CareerAdvancementBaseline {
   talentSources: Record<string, AdvancementSourceCount[]>;
   /** Career-derived characteristic source counts used for UI explanations. */
   characteristicSources: Record<string, AdvancementSourceCount[]>;
+  /** Career-derived trappings by display name. */
+  trappings: Record<string, number>;
+  /** Career-derived trapping source counts used for UI explanations. */
+  trappingSources: Record<string, AdvancementSourceCount[]>;
 }
 
 /**
@@ -162,6 +193,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
   /** Characteristic advancements: base from generated state + current user-edited value. */
   const characteristics = ref<Record<string, AdvancementValue>>({});
+
+  /** Trappings gathered from careers, base actor inventory, and manual additions. */
+  const trappings = ref<Record<string, NpcBuilderTrappingEntry>>({});
 
   // ---------------------------------------------------------------------------
   // Auto-allocation state
@@ -268,6 +302,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skills.value = {};
     talents.value = {};
     characteristics.value = {};
+    trappings.value = {};
     targetXp.value = 0;
     allocationTargetKind.value = 'total';
     allocationStrategy.value = 'evenly';
@@ -297,6 +332,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       skillSources: {},
       talentSources: {},
       characteristicSources: {},
+      trappings: {},
+      trappingSources: {},
     };
 
     for (const careerEntry of careers.value) {
@@ -369,6 +406,27 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
               baseline.characteristicSources[normalizedKey] = existingSources;
             }
           }
+        }
+      }
+
+      const careerTrappings = careerItemAny?.system?.trappings;
+      if (Array.isArray(careerTrappings)) {
+        for (const trappingName of careerTrappings) {
+          const trimmedName = String(trappingName ?? '').trim();
+          if (!trimmedName) continue;
+
+          baseline.trappings[trimmedName] = (baseline.trappings[trimmedName] ?? 0) + quantity;
+
+          const existingSources = baseline.trappingSources[trimmedName] ?? [];
+          const existingCareerSource = existingSources.find(
+            (source) => source.label === careerEntry.name,
+          );
+          if (existingCareerSource) {
+            existingCareerSource.count += quantity;
+          } else {
+            existingSources.push({ label: careerEntry.name, count: quantity });
+          }
+          baseline.trappingSources[trimmedName] = existingSources;
         }
       }
     }
@@ -465,6 +523,163 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       }
     }
     return null;
+  }
+
+  function getTrappingItemTypes(): string[] {
+    const configured = (game as any)?.wfrp4e?.config?.trappingItems;
+    if (Array.isArray(configured) && configured.length) {
+      return configured.map((value) => String(value));
+    }
+    return ['trapping', 'armour', 'weapon', 'container', 'ammunition', 'money'];
+  }
+
+  function readBaseActorTrappings(baseActor: any | null): Record<string, NpcBuilderTrappingEntry> {
+    const result: Record<string, NpcBuilderTrappingEntry> = {};
+    if (!baseActor || typeof baseActor !== 'object') return result;
+
+    const allowedTypes = new Set(getTrappingItemTypes());
+    for (const item of baseActor?.items?.contents ?? []) {
+      const itemType = String(item?.type ?? '').toLowerCase();
+      if (!allowedTypes.has(itemType)) continue;
+
+      const itemName = String(item?.name ?? '').trim();
+      if (!itemName) continue;
+
+      const quantity = Math.max(
+        1,
+        toSafeNonNegativeInteger(
+          readNumberFromPaths(item?.system, ['quantity.value', 'quantity']) ?? 1,
+        ),
+      );
+      const key = `base:${itemType}:${itemName.toLowerCase()}`;
+
+      result[key] = {
+        key,
+        name: itemName,
+        originalName: itemName,
+        quantity,
+        itemType,
+        sourceKind: 'base',
+        includedFromCareer: false,
+        includedFromBase: true,
+        includedFromUser: false,
+        editable: settings.value.allowUpgradeBaseTrappings,
+        ignoredFromCareer: false,
+        ignored: false,
+        sourceSummary: baseActor.name ? `Base: ${baseActor.name}` : 'Base actor',
+        careerSources: [],
+        documentUuid: String(item?.uuid ?? '').trim() || null,
+        sourceData: (item?.toObject?.() as Record<string, unknown> | undefined) ?? null,
+        xp: 0,
+        resolved: null,
+      };
+    }
+
+    return result;
+  }
+
+  async function resolveTrappingItemByName(name: string): Promise<any | null> {
+    const normalizedName = String(name ?? '').trim();
+    if (!normalizedName) return null;
+
+    const utility = (game as any)?.wfrp4e?.utility;
+    if (typeof utility?.findItem === 'function') {
+      try {
+        return (await utility.findItem(normalizedName, getTrappingItemTypes())) ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    if (typeof utility?.find === 'function') {
+      try {
+        return (await utility.find(normalizedName, getTrappingItemTypes())) ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    return (
+      game.items?.contents.find((item: any) => {
+        return (
+          getTrappingItemTypes().includes(String(item?.type ?? '').toLowerCase()) &&
+          String(item?.name ?? '')
+            .trim()
+            .toLowerCase() === normalizedName.toLowerCase()
+        );
+      }) ?? null
+    );
+  }
+
+  async function buildCareerTrappings(): Promise<Record<string, NpcBuilderTrappingEntry>> {
+    const baseline = await buildCareerAdvancements();
+    const result: Record<string, NpcBuilderTrappingEntry> = {};
+
+    for (const [name, quantity] of Object.entries(baseline.trappings)) {
+      const resolvedItem = await resolveTrappingItemByName(name);
+      const itemType = String((resolvedItem as any)?.type ?? 'trapping').toLowerCase();
+      const key = `career:${itemType}:${name.toLowerCase()}`;
+      result[key] = {
+        key,
+        name,
+        originalName: name,
+        quantity: Math.max(1, toSafeNonNegativeInteger(quantity)),
+        itemType,
+        sourceKind: 'career',
+        includedFromCareer: true,
+        includedFromBase: false,
+        includedFromUser: false,
+        editable: false,
+        ignoredFromCareer: false,
+        ignored: false,
+        sourceSummary: 'Career-derived',
+        careerSources: (baseline.trappingSources[name] ?? []).map((source) => ({ ...source })),
+        documentUuid: String((resolvedItem as any)?.uuid ?? '').trim() || null,
+        sourceData:
+          ((resolvedItem as any)?.toObject?.() as Record<string, unknown> | undefined) ?? null,
+        xp: 0,
+        resolved: resolvedItem !== null,
+      };
+    }
+
+    return result;
+  }
+
+  async function hydrateTrappings(baseActor: any | null): Promise<void> {
+    const existing = trappings.value;
+    const next: Record<string, NpcBuilderTrappingEntry> = {};
+
+    const careerTrappings = await buildCareerTrappings();
+    for (const [key, entry] of Object.entries(careerTrappings)) {
+      const existingEntry = existing[key];
+      next[key] = {
+        ...entry,
+        ignoredFromCareer: existingEntry?.ignoredFromCareer ?? false,
+      };
+    }
+
+    const baseTrappings = readBaseActorTrappings(baseActor);
+    if (settings.value.allowUpgradeBaseTrappings) {
+      for (const [key, entry] of Object.entries(baseTrappings)) {
+        const existingEntry = existing[key];
+        next[key] = existingEntry
+          ? {
+              ...entry,
+              name: existingEntry.name,
+              quantity: existingEntry.quantity,
+              ignored: existingEntry.ignored,
+            }
+          : entry;
+      }
+    }
+
+    for (const [key, entry] of Object.entries(existing)) {
+      if (entry.sourceKind === 'user') {
+        next[key] = { ...entry };
+      }
+    }
+
+    trappings.value = next;
   }
 
   /**
@@ -642,6 +857,97 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       };
     }
     characteristics.value = nextCharacteristics;
+  }
+
+  function createUserTrappingKey(): string {
+    return `user:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function addUserTrapping(
+    partial?: Partial<
+      Pick<
+        NpcBuilderTrappingEntry,
+        'name' | 'quantity' | 'itemType' | 'documentUuid' | 'sourceData'
+      >
+    >,
+  ): string {
+    const key = createUserTrappingKey();
+    const name = String(partial?.name ?? '').trim() || 'New Trapping';
+    const quantity = Math.max(1, toSafeNonNegativeInteger(Number(partial?.quantity ?? 1)));
+    trappings.value[key] = {
+      key,
+      name,
+      originalName: name,
+      quantity,
+      itemType: String(partial?.itemType ?? 'trapping').toLowerCase(),
+      sourceKind: 'user',
+      includedFromCareer: false,
+      includedFromBase: false,
+      includedFromUser: true,
+      editable: true,
+      ignoredFromCareer: false,
+      ignored: false,
+      sourceSummary: 'User-added',
+      careerSources: [],
+      documentUuid: partial?.documentUuid ?? null,
+      sourceData: partial?.sourceData ?? null,
+      xp: 0,
+      resolved: null,
+    };
+    return key;
+  }
+
+  function updateTrappingName(key: string, name: string): void {
+    const existing = trappings.value[key];
+    if (!existing || !existing.editable) return;
+    trappings.value[key] = {
+      ...existing,
+      name: String(name ?? '').trim() || existing.name,
+    };
+  }
+
+  function updateTrappingQuantity(key: string, quantity: number): void {
+    const existing = trappings.value[key];
+    if (!existing || !existing.editable) return;
+    trappings.value[key] = {
+      ...existing,
+      quantity: Math.max(1, toSafeNonNegativeInteger(quantity)),
+    };
+  }
+
+  function removeTrapping(key: string): void {
+    const existing = trappings.value[key];
+    if (!existing) return;
+
+    if (existing.sourceKind === 'career') {
+      trappings.value[key] = {
+        ...existing,
+        ignoredFromCareer: true,
+      };
+      return;
+    }
+
+    if (existing.sourceKind === 'base') {
+      trappings.value[key] = {
+        ...existing,
+        ignored: true,
+      };
+      return;
+    }
+
+    delete trappings.value[key];
+  }
+
+  /**
+   * Marks all career-derived trappings that were not resolved to a real item
+   * as ignored so they will not be created on the built actor.
+   */
+  function ignoreUnresolvedCareerTrappings(): void {
+    for (const [key, entry] of Object.entries(trappings.value)) {
+      if (entry.sourceKind === 'career' && entry.resolved === false && !entry.ignoredFromCareer) {
+        trappings.value[key] = { ...entry, ignoredFromCareer: true };
+      }
+    }
   }
 
   function setSkillCurrent(name: string, current: number): void {
@@ -861,6 +1167,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skills.value = {};
     talents.value = {};
     characteristics.value = {};
+    trappings.value = {};
     preAllocationSnapshot.value = null;
     lastAllocationUnspent.value = 0;
   }
@@ -878,6 +1185,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skills,
     talents,
     characteristics,
+    trappings,
     targetXp,
     allocationTargetKind,
     allocationStrategy,
@@ -902,12 +1210,18 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     moveCareer,
     resetWorkingNpc,
     hydrateAdvancements,
+    hydrateTrappings,
     setSkillCurrent,
     setTalentCurrent,
     setCharacteristicCurrent,
     adjustSkillCurrent,
     adjustTalentCurrent,
     adjustCharacteristicCurrent,
+    addUserTrapping,
+    updateTrappingName,
+    updateTrappingQuantity,
+    removeTrapping,
+    ignoreUnresolvedCareerTrappings,
     applyXpAllocation,
     resetXpAllocation,
   };

@@ -17,6 +17,7 @@ export function getDefaultNPCBuilderSettings(): NPCBuilderSettings {
     allowUpgradeBaseSkills: false,
     allowUpgradeBaseCharacteristics: false,
     allowUpgradeBaseTalents: true,
+    allowUpgradeBaseTrappings: false,
   };
 }
 

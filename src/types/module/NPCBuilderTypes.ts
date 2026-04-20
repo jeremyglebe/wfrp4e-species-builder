@@ -20,6 +20,8 @@ export interface NPCBuilderSettings {
   allowUpgradeBaseCharacteristics: boolean;
   /** Whether base actor talents may appear as upgradeable entries in the advancement tab */
   allowUpgradeBaseTalents: boolean;
+  /** Whether base actor trappings may appear as editable entries in the trappings tab */
+  allowUpgradeBaseTrappings: boolean;
 }
 
 /**

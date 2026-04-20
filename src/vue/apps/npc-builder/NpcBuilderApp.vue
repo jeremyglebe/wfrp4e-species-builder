@@ -7,6 +7,36 @@
       </div>
     </div>
 
+    <div v-if="unresolvedDialog" class="npc-builder__overlay">
+      <div class="npc-builder__unresolved-dialog">
+        <div class="npc-builder__unresolved-title">Unresolved Trappings</div>
+        <p class="npc-builder__unresolved-copy">
+          The following career-derived trappings could not be matched to any item in the compendium
+          or world. You can ignore them (skip creating them), create blank placeholder items, or
+          cancel the build to review the Trappings tab.
+        </p>
+        <ul class="npc-builder__unresolved-list">
+          <li v-for="entry in unresolvedDialog.entries" :key="entry.key" class="npc-builder__unresolved-item">
+            <span class="npc-builder__unresolved-name">{{ entry.name }}</span>
+            <span class="npc-builder__unresolved-src">{{ entry.sourceSummary }}</span>
+          </li>
+        </ul>
+        <div class="npc-builder__unresolved-actions">
+          <button type="button" class="npc-builder__button" @click="onUnresolvedChoice('ignore')">
+            Ignore Unresolved
+          </button>
+          <button type="button" class="npc-builder__button npc-builder__button--ghost"
+            @click="onUnresolvedChoice('blanks')">
+            Create Blank Items
+          </button>
+          <button type="button" class="npc-builder__button npc-builder__button--ghost"
+            @click="onUnresolvedChoice('cancel')">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="npc-builder__tabs">
       <button type="button" class="npc-builder__tab" :class="{ 'is-active': activeTab === 'main' }"
         @click="activeTab = 'main'" :disabled="isBusy">
@@ -48,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { x8 } from '@upscalerjs/esrgan-thick';
 import {
@@ -57,6 +87,7 @@ import {
 } from '../../../module/services/settings/npcs';
 import { buildFinalName } from '../../../module/services/npc-builder-naming';
 import { useNpcBuilderStore } from '../../stores';
+import type { NpcBuilderTrappingEntry } from '../../stores/npc-builder-store';
 import NpcBuilderMainTab from './tabs/NpcBuilderMainTab.vue';
 import NpcBuilderSkillsTalentsTab from './tabs/NpcBuilderSkillsTalentsTab.vue';
 import NpcBuilderTraitsTab from './tabs/NpcBuilderTraitsTab.vue';
@@ -90,6 +121,7 @@ const {
   skills,
   talents,
   characteristics,
+  trappings,
 } =
   storeToRefs(store);
 
@@ -99,9 +131,40 @@ const careersSignature = computed(() => {
     .join('|');
 });
 
+const builderSettingsSignature = computed(() => {
+  return [
+    settings.value.allowUpgradeBaseSkills,
+    settings.value.allowUpgradeBaseCharacteristics,
+    settings.value.allowUpgradeBaseTalents,
+    settings.value.allowUpgradeBaseTrappings,
+  ].join('|');
+});
+
 let advancementHydrationToken = 0;
 
 let upscalerInstance: any = null;
+
+// ---------------------------------------------------------------------------
+// Unresolved trappings dialog state
+// ---------------------------------------------------------------------------
+
+interface UnresolvedDialogState {
+  entries: NpcBuilderTrappingEntry[];
+  resolve: (choice: 'ignore' | 'blanks' | 'cancel') => void;
+}
+
+const unresolvedDialog = ref<UnresolvedDialogState | null>(null);
+
+function promptUnresolvedTrappings(entries: NpcBuilderTrappingEntry[]): Promise<'ignore' | 'blanks' | 'cancel'> {
+  return new Promise((resolve) => {
+    unresolvedDialog.value = { entries, resolve };
+  });
+}
+
+function onUnresolvedChoice(choice: 'ignore' | 'blanks' | 'cancel'): void {
+  unresolvedDialog.value?.resolve(choice);
+  unresolvedDialog.value = null;
+}
 
 async function resolveBaseActor(): Promise<any | null> {
   if (baseActorOverride.value?.uuid) {
@@ -301,8 +364,8 @@ async function syncAdvancementsFromBuildInputs(): Promise<void> {
     return;
   }
 
-  // Call the store's hydrateAdvancements which handles career-based baselines
   await store.hydrateAdvancements(baseActor, true);
+  await store.hydrateTrappings(baseActor);
 }
 
 async function getUpscalerLazy(): Promise<any> {
@@ -348,6 +411,130 @@ async function upscaleAndApplyActorImage(actor: any, imageSource: string): Promi
   }
 }
 
+function getTrappingItemTypes(): string[] {
+  const configured = (game as any)?.wfrp4e?.config?.trappingItems;
+  if (Array.isArray(configured) && configured.length) {
+    return configured.map((value) => String(value).toLowerCase());
+  }
+  return ['trapping', 'armour', 'weapon', 'container', 'ammunition', 'money'];
+}
+
+function buildFallbackTrappingData(name: string, quantity: number): Record<string, unknown> {
+  return {
+    name,
+    type: 'trapping',
+    img: 'systems/wfrp4e/icons/blank.png',
+    system: {
+      quantity: { value: quantity },
+      trappingType: { value: 'misc' },
+      worn: false,
+    },
+  };
+}
+
+async function resolveTrappingSourceDataByName(name: string): Promise<Record<string, unknown> | null> {
+  const normalizedName = String(name ?? '').trim();
+  if (!normalizedName) return null;
+
+  const utility = (game as any)?.wfrp4e?.utility;
+  if (typeof utility?.findItem === 'function') {
+    try {
+      const item = await utility.findItem(normalizedName, getTrappingItemTypes());
+      return (item?.toObject?.() as Record<string, unknown> | undefined) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function withTrappingQuantity(
+  sourceData: Record<string, unknown> | null,
+  name: string,
+  quantity: number,
+  itemType: string,
+): Record<string, unknown> {
+  const next = sourceData ? foundry.utils.deepClone(sourceData) : buildFallbackTrappingData(name, quantity);
+  delete (next as any)._id;
+  next.name = name;
+  next.type = String((next as any).type ?? itemType ?? 'trapping').toLowerCase();
+  (next as any).system ??= {};
+  (next as any).system.quantity ??= { value: quantity };
+  if (typeof (next as any).system.quantity === 'object') {
+    (next as any).system.quantity.value = quantity;
+  } else {
+    (next as any).system.quantity = { value: quantity };
+  }
+  return next;
+}
+
+async function applyBuilderTrappingsToActor(actor: any): Promise<void> {
+  if (!actor) return;
+
+  const allowedTypes = new Set(getTrappingItemTypes());
+  const existingItems = (actor.items?.contents ?? []).filter((item: any) => {
+    return allowedTypes.has(String(item?.type ?? '').toLowerCase());
+  });
+
+  const itemUpdates: Array<Record<string, unknown>> = [];
+  const itemCreates: Record<string, unknown>[] = [];
+  const itemDeletes: string[] = [];
+
+  for (const entry of Object.values(trappings.value)) {
+    const matchName = String(entry.originalName || entry.name).trim().toLowerCase();
+    const matches = existingItems.filter((item: any) => {
+      return (
+        String(item?.type ?? '').toLowerCase() === entry.itemType &&
+        String(item?.name ?? '').trim().toLowerCase() === matchName
+      );
+    });
+
+    if (entry.sourceKind === 'base') {
+      if (entry.ignored) {
+        itemDeletes.push(...matches.map((item: any) => String(item.id)));
+        continue;
+      }
+
+      const targetData = withTrappingQuantity(entry.sourceData, entry.name, entry.quantity, entry.itemType);
+      if (matches[0]) {
+        itemUpdates.push({
+          _id: matches[0].id,
+          name: entry.name,
+          'system.quantity.value': entry.quantity,
+        });
+      } else {
+        itemCreates.push(targetData);
+      }
+      continue;
+    }
+
+    if (entry.sourceKind === 'career' && entry.ignoredFromCareer) {
+      continue;
+    }
+
+    if (entry.sourceKind === 'user' && entry.ignored) {
+      continue;
+    }
+
+    let sourceData = entry.sourceData;
+    if (!sourceData && entry.sourceKind === 'career') {
+      sourceData = await resolveTrappingSourceDataByName(entry.name);
+    }
+    itemCreates.push(withTrappingQuantity(sourceData, entry.name, entry.quantity, entry.itemType));
+  }
+
+  if (itemDeletes.length) {
+    await actor.deleteEmbeddedDocuments('Item', itemDeletes);
+  }
+  if (itemUpdates.length) {
+    await actor.updateEmbeddedDocuments('Item', itemUpdates);
+  }
+  if (itemCreates.length) {
+    await actor.createEmbeddedDocuments('Item', itemCreates);
+  }
+}
+
 async function buildNPC(): Promise<void> {
   const baseActorToUse = await resolveBaseActor();
   if (!baseActorToUse) {
@@ -358,6 +545,22 @@ async function buildNPC(): Promise<void> {
   if (!careers.value.length) {
     ui.notifications?.error('Add at least one career.');
     return;
+  }
+
+  // Check whether any career-derived trappings could not be resolved.
+  const unresolvedEntries = Object.values(trappings.value).filter(
+    (entry) => entry.sourceKind === 'career' && entry.resolved === false && !entry.ignoredFromCareer,
+  );
+
+  if (unresolvedEntries.length > 0) {
+    const choice = await promptUnresolvedTrappings(unresolvedEntries);
+    if (choice === 'cancel') {
+      return;
+    }
+    if (choice === 'ignore') {
+      store.ignoreUnresolvedCareerTrappings();
+    }
+    // 'blanks' falls through — unresolved items will be created as blank trapping items.
   }
 
   isBusy.value = true;
@@ -406,6 +609,9 @@ async function buildNPC(): Promise<void> {
 
     busyMessage.value = 'Applying advancement edits...';
     await applyBuilderAdvancementValuesToActor(createdActor, baseAdvancementSnapshot);
+
+    busyMessage.value = 'Applying trappings...';
+    await applyBuilderTrappingsToActor(createdActor);
 
     await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -522,7 +728,7 @@ watch(
 );
 
 watch(
-  [baseActorId, baseActorOverride, careersSignature],
+  [baseActorId, baseActorOverride, careersSignature, builderSettingsSignature],
   () => {
     void syncAdvancementsFromBuildInputs();
   },
@@ -658,6 +864,126 @@ watch(
   flex-direction: column;
   gap: 6px;
   --npc-builder-adv-columns: minmax(160px, 1.6fr) 72px 132px 64px 72px minmax(180px, 1.5fr) 72px;
+}
+
+.npc-builder__trap-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) auto minmax(120px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgb(137 103 77 / 50%);
+  border-radius: 4px;
+  background: rgba(33, 24, 19, 0.5);
+}
+
+.npc-builder__trap-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.npc-builder__trap-badge--resolved {
+  background: rgb(40 100 60 / 60%);
+  color: #8de8b0;
+  border: 1px solid rgb(60 150 90 / 50%);
+}
+
+.npc-builder__trap-badge--unresolved {
+  background: rgb(120 40 30 / 60%);
+  color: #f4a690;
+  border: 1px solid rgb(180 70 50 / 50%);
+}
+
+.npc-builder__unresolved-dialog {
+  background: #1e1610;
+  border: 2px solid #7a4f2e;
+  border-radius: 6px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.npc-builder__unresolved-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f4d8b5;
+}
+
+.npc-builder__unresolved-copy {
+  font-size: 12px;
+  color: #bca98f;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.npc-builder__unresolved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.npc-builder__unresolved-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(120 40 30 / 30%);
+  border: 1px solid rgb(180 70 50 / 40%);
+  border-radius: 4px;
+}
+
+.npc-builder__unresolved-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4a690;
+}
+
+.npc-builder__unresolved-src {
+  font-size: 11px;
+  color: #9f8a72;
+}
+
+.npc-builder__unresolved-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.npc-builder__trap-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.npc-builder__trap-qty,
+.npc-builder__trap-source {
+  font-size: 12px;
+  color: #bca98f;
+}
+
+.npc-builder__trap-qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.npc-builder__trap-qty-control label {
+  font-size: 12px;
+  color: #bca98f;
 }
 
 .npc-builder__adv-head {
@@ -1091,7 +1417,8 @@ watch(
     grid-template-columns: 1fr;
   }
 
-  .npc-builder__adv-row {
+  .npc-builder__adv-row,
+  .npc-builder__trap-row {
     grid-template-columns: 1fr;
     justify-items: start;
   }
