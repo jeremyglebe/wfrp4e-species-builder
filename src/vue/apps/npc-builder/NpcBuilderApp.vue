@@ -657,11 +657,12 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 6px;
+  --npc-builder-adv-columns: minmax(160px, 1.6fr) 72px 132px 64px 72px minmax(180px, 1.5fr) 72px;
 }
 
 .npc-builder__adv-head {
   display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) auto auto auto auto;
+  grid-template-columns: var(--npc-builder-adv-columns);
   gap: 8px;
   align-items: center;
   padding: 0 8px;
@@ -672,13 +673,23 @@ watch(
 }
 
 .npc-builder__adv-head-xp,
-.npc-builder__adv-head-total {
-  justify-self: end;
+.npc-builder__adv-head-total,
+.npc-builder__adv-head-base,
+.npc-builder__adv-head-default {
+  justify-self: center;
+}
+
+.npc-builder__adv-head-controls {
+  justify-self: center;
+}
+
+.npc-builder__adv-head-careers {
+  justify-self: start;
 }
 
 .npc-builder__adv-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) auto auto auto auto;
+  grid-template-columns: var(--npc-builder-adv-columns);
   gap: 8px;
   align-items: center;
   padding: 8px;
@@ -708,19 +719,39 @@ watch(
   display: flex;
   align-items: center;
   gap: 4px;
+  justify-self: center;
+}
+
+.npc-builder__adv-controls .npc-builder__quantity-input {
+  font-size: 16px;
 }
 
 .npc-builder__adv-xp {
-  font-size: 11px;
+  font-size: 16px;
   color: #d9a44f;
-  justify-self: end;
+  justify-self: center;
+  font-weight: 600;
 }
 
 .npc-builder__adv-total {
-  font-size: 11px;
+  font-size: 16px;
   color: #a9dbc0;
-  justify-self: end;
+  justify-self: center;
   font-weight: 600;
+}
+
+.npc-builder__adv-base,
+.npc-builder__adv-default {
+  font-size: 13px;
+  color: #cdb99f;
+  justify-self: center;
+  font-weight: 600;
+}
+
+.npc-builder__adv-careers {
+  font-size: 13px;
+  color: #bca98f;
+  justify-self: start;
 }
 
 .npc-builder__override-header {
@@ -1070,10 +1101,19 @@ watch(
   }
 
   .npc-builder__adv-xp {
-    justify-self: start;
+    justify-self: center;
   }
 
   .npc-builder__adv-total {
+    justify-self: center;
+  }
+
+  .npc-builder__adv-base,
+  .npc-builder__adv-default {
+    justify-self: center;
+  }
+
+  .npc-builder__adv-careers {
     justify-self: start;
   }
 }

@@ -49,6 +49,8 @@ export interface AdvancementValue {
   editable: boolean;
   /** Source breakdown used for explanatory UI, primarily for talents. */
   sources: AdvancementSourceCount[];
+  /** Career-only source breakdown for displaying which queued careers grant this entry. */
+  careerSources: AdvancementSourceCount[];
 }
 
 export interface AdvancementSourceCount {
@@ -67,8 +69,12 @@ export interface CareerAdvancementBaseline {
   talents: Record<string, number>;
   /** Career-derived characteristic advances: keyed by characteristic name, value is +5 per career that grants it */
   characteristics: Record<string, number>;
+  /** Career-derived skill source counts used for UI explanations. */
+  skillSources: Record<string, AdvancementSourceCount[]>;
   /** Career-derived talent source counts used for UI explanations. */
   talentSources: Record<string, AdvancementSourceCount[]>;
+  /** Career-derived characteristic source counts used for UI explanations. */
+  characteristicSources: Record<string, AdvancementSourceCount[]>;
 }
 
 /**
@@ -288,7 +294,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       skills: {},
       talents: {},
       characteristics: {},
+      skillSources: {},
       talentSources: {},
+      characteristicSources: {},
     };
 
     for (const careerEntry of careers.value) {
@@ -304,6 +312,17 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
           const trimmedName = String(skillName ?? '').trim();
           if (trimmedName) {
             baseline.skills[trimmedName] = (baseline.skills[trimmedName] ?? 0) + 5 * quantity;
+
+            const existingSources = baseline.skillSources[trimmedName] ?? [];
+            const existingCareerSource = existingSources.find(
+              (source) => source.label === careerEntry.name,
+            );
+            if (existingCareerSource) {
+              existingCareerSource.count += quantity;
+            } else {
+              existingSources.push({ label: careerEntry.name, count: quantity });
+            }
+            baseline.skillSources[trimmedName] = existingSources;
           }
         }
       }
@@ -337,6 +356,17 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
             if (normalizedKey) {
               baseline.characteristics[normalizedKey] =
                 (baseline.characteristics[normalizedKey] ?? 0) + 5 * quantity;
+
+              const existingSources = baseline.characteristicSources[normalizedKey] ?? [];
+              const existingCareerSource = existingSources.find(
+                (source) => source.label === careerEntry.name,
+              );
+              if (existingCareerSource) {
+                existingCareerSource.count += quantity;
+              } else {
+                existingSources.push({ label: careerEntry.name, count: quantity });
+              }
+              baseline.characteristicSources[normalizedKey] = existingSources;
             }
           }
         }
@@ -467,6 +497,16 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       return sourceCounts;
     }
 
+    function getCareerSourceCounts(
+      sourceMap: Record<string, AdvancementSourceCount[]>,
+      key: string,
+    ): AdvancementSourceCount[] {
+      return (sourceMap[key] ?? []).map((source) => ({
+        label: source.label,
+        count: source.count,
+      }));
+    }
+
     // Skills
     const allSkillKeys = new Set([
       ...Object.keys(careerBaseline.skills),
@@ -491,6 +531,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         effectiveRankForCost: 0,
         editable: true,
         sources: [],
+        careerSources: getCareerSourceCounts(careerBaseline.skillSources, skillName),
       };
     }
 
@@ -518,6 +559,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         effectiveRankForCost,
         editable,
         sources: getTalentSourceCounts(talentName),
+        careerSources: getCareerSourceCounts(careerBaseline.talentSources, talentName),
       };
     }
 
@@ -546,6 +588,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
         effectiveRankForCost: 0,
         editable: true,
         sources: [],
+        careerSources: getCareerSourceCounts(careerBaseline.characteristicSources, charName),
       };
     }
 

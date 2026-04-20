@@ -12,15 +12,27 @@
 
       <div v-else class="npc-builder__adv-list">
         <div class="npc-builder__adv-head" aria-hidden="true">
-          <div class="npc-builder__adv-head-name">Name</div>
-          <div class="npc-builder__adv-head-meta">Base</div>
-          <div class="npc-builder__adv-head-controls">Adjust</div>
-          <div class="npc-builder__adv-head-xp">XP</div>
-          <div class="npc-builder__adv-head-total">Total</div>
+          <div class="npc-builder__adv-head-name" title="Name of this skill, talent, or characteristic entry.">Name
+          </div>
+          <div class="npc-builder__adv-head-total"
+            title="Final projected value when the NPC is built: base statblock value plus your planned advances/ranks.">
+            Total
+          </div>
+          <div class="npc-builder__adv-head-controls"
+            title="Editable advances/ranks used by the builder. Use +/- or type a value.">Advances</div>
+          <div class="npc-builder__adv-head-xp"
+            title="Current XP cost for the Advances value using WFRP progression tables.">XP</div>
+          <div class="npc-builder__adv-head-base"
+            title="Value from the selected base statblock before career defaults and manual edits.">Base</div>
+          <div class="npc-builder__adv-head-careers" title="Queued careers that grant this entry.">Careers</div>
+          <div class="npc-builder__adv-head-default"
+            title="Expected value after adding queued careers with no manual edits. This is the initial value loaded into Advances.">
+            Default
+          </div>
         </div>
         <div v-for="entry in skillRows" :key="`skill-${entry.name}`" class="npc-builder__adv-row">
           <div class="npc-builder__adv-name">{{ entry.name }}</div>
-          <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
+          <div class="npc-builder__adv-total">{{ entry.total }}</div>
           <div class="npc-builder__adv-controls">
             <button type="button" class="npc-builder__button npc-builder__button--small"
               :title="`-${skillPrevRefund(entry.current)} XP`" @click="adjustSkillCurrent(entry.name, -1)">
@@ -33,8 +45,10 @@
               +
             </button>
           </div>
-          <div class="npc-builder__adv-xp">XP {{ entry.xp }}</div>
-          <div class="npc-builder__adv-total">Total {{ entry.total }}</div>
+          <div class="npc-builder__adv-xp">{{ entry.xp }}</div>
+          <div class="npc-builder__adv-base">{{ entry.baseActorTotal }}</div>
+          <div class="npc-builder__adv-careers">{{ entry.careerSummary }}</div>
+          <div class="npc-builder__adv-default">{{ entry.defaultValue }}</div>
         </div>
       </div>
     </div>
@@ -51,19 +65,27 @@
 
       <div v-else class="npc-builder__adv-list">
         <div class="npc-builder__adv-head" aria-hidden="true">
-          <div class="npc-builder__adv-head-name">Name</div>
-          <div class="npc-builder__adv-head-meta">Base</div>
-          <div class="npc-builder__adv-head-controls">Adjust</div>
-          <div class="npc-builder__adv-head-xp">XP</div>
-          <div class="npc-builder__adv-head-total">Total</div>
+          <div class="npc-builder__adv-head-name" title="Name of this skill, talent, or characteristic entry.">Name
+          </div>
+          <div class="npc-builder__adv-head-total"
+            title="Final projected value when the NPC is built: base statblock value plus your planned advances/ranks.">
+            Total
+          </div>
+          <div class="npc-builder__adv-head-controls"
+            title="Editable advances/ranks used by the builder. Use +/- or type a value.">Advances</div>
+          <div class="npc-builder__adv-head-xp"
+            title="Current XP cost for the Advances value using WFRP progression tables.">XP</div>
+          <div class="npc-builder__adv-head-base"
+            title="Value from the selected base statblock before career defaults and manual edits.">Base</div>
+          <div class="npc-builder__adv-head-careers" title="Queued careers that grant this entry.">Careers</div>
+          <div class="npc-builder__adv-head-default"
+            title="Expected value after adding queued careers with no manual edits. This is the initial value loaded into Advances.">
+            Default
+          </div>
         </div>
         <div v-for="entry in talentRows" :key="`talent-${entry.name}`" class="npc-builder__adv-row">
-          <div class="npc-builder__adv-name">
-            {{ entry.name }}
-            <span v-if="entry.sourceSummary" class="npc-builder__adv-source-summary">({{ entry.sourceSummary
-            }})</span>
-          </div>
-          <div class="npc-builder__adv-meta">Base {{ entry.effectiveRankForCost }}</div>
+          <div class="npc-builder__adv-name">{{ entry.name }}</div>
+          <div class="npc-builder__adv-total">{{ entry.total }}</div>
           <div class="npc-builder__adv-controls">
             <button type="button" class="npc-builder__button npc-builder__button--small"
               :title="`-${talentPrevRefund(entry.current)} XP`" @click="adjustTalentCurrent(entry.name, -1)">
@@ -76,8 +98,10 @@
               +
             </button>
           </div>
-          <div class="npc-builder__adv-xp">XP {{ entry.xp }}</div>
-          <div class="npc-builder__adv-total">Total {{ entry.total }}</div>
+          <div class="npc-builder__adv-xp">{{ entry.xp }}</div>
+          <div class="npc-builder__adv-base">{{ entry.baseActorTotal }}</div>
+          <div class="npc-builder__adv-careers">{{ entry.careerSummary }}</div>
+          <div class="npc-builder__adv-default">{{ entry.defaultValue }}</div>
         </div>
       </div>
     </div>
@@ -94,15 +118,27 @@
 
       <div v-else class="npc-builder__adv-list">
         <div class="npc-builder__adv-head" aria-hidden="true">
-          <div class="npc-builder__adv-head-name">Name</div>
-          <div class="npc-builder__adv-head-meta">Base</div>
-          <div class="npc-builder__adv-head-controls">Adjust</div>
-          <div class="npc-builder__adv-head-xp">XP</div>
-          <div class="npc-builder__adv-head-total">Total</div>
+          <div class="npc-builder__adv-head-name" title="Name of this skill, talent, or characteristic entry.">Name
+          </div>
+          <div class="npc-builder__adv-head-total"
+            title="Final projected value when the NPC is built: base statblock value plus your planned advances/ranks.">
+            Total
+          </div>
+          <div class="npc-builder__adv-head-controls"
+            title="Editable advances/ranks used by the builder. Use +/- or type a value.">Advances</div>
+          <div class="npc-builder__adv-head-xp"
+            title="Current XP cost for the Advances value using WFRP progression tables.">XP</div>
+          <div class="npc-builder__adv-head-base"
+            title="Value from the selected base statblock before career defaults and manual edits.">Base</div>
+          <div class="npc-builder__adv-head-careers" title="Queued careers that grant this entry.">Careers</div>
+          <div class="npc-builder__adv-head-default"
+            title="Expected value after adding queued careers with no manual edits. This is the initial value loaded into Advances.">
+            Default
+          </div>
         </div>
         <div v-for="entry in characteristicRows" :key="`characteristic-${entry.name}`" class="npc-builder__adv-row">
           <div class="npc-builder__adv-name">{{ entry.name }}</div>
-          <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
+          <div class="npc-builder__adv-total">{{ entry.total }}</div>
           <div class="npc-builder__adv-controls">
             <button type="button" class="npc-builder__button npc-builder__button--small"
               :title="`-${characteristicPrevRefund(entry.current)} XP`"
@@ -117,8 +153,10 @@
               +
             </button>
           </div>
-          <div class="npc-builder__adv-xp">XP {{ entry.xp }}</div>
-          <div class="npc-builder__adv-total">Total {{ entry.total }}</div>
+          <div class="npc-builder__adv-xp">{{ entry.xp }}</div>
+          <div class="npc-builder__adv-base">{{ entry.baseActorTotal }}</div>
+          <div class="npc-builder__adv-careers">{{ entry.careerSummary }}</div>
+          <div class="npc-builder__adv-default">{{ entry.defaultValue }}</div>
         </div>
       </div>
     </div>
@@ -291,6 +329,8 @@ const skillRows = computed(() => {
       baseActorTotal: value.baseActorTotal,
       current: value.current,
       total: value.baseActorTotal + value.current,
+      defaultValue: value.baseline,
+      careerSummary: formatCareerSources(value.careerSources),
       xp: getSkillXpCost(value.current),
       includedFromCareer: value.includedFromCareer,
       includedFromBase: value.includedFromBase,
@@ -307,11 +347,12 @@ const talentRows = computed(() => {
       baseActorTotal: value.baseActorTotal,
       current: value.current,
       total: value.current,
+      defaultValue: value.effectiveRankForCost,
+      careerSummary: formatCareerSources(value.careerSources),
       xp: getTalentXpCost(value.current),
       includedFromCareer: value.includedFromCareer,
       includedFromBase: value.includedFromBase,
       effectiveRankForCost: value.effectiveRankForCost,
-      sourceSummary: formatTalentSources(value.sources),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -325,6 +366,8 @@ const characteristicRows = computed(() => {
       baseActorTotal: value.baseActorTotal,
       current: value.current,
       total: value.baseActorTotal + value.current,
+      defaultValue: value.baseline,
+      careerSummary: formatCareerSources(value.careerSources),
       xp: getCharacteristicXpCost(value.current),
       includedFromCareer: value.includedFromCareer,
       includedFromBase: value.includedFromBase,
@@ -341,11 +384,12 @@ function readInputValue(event: Event): number {
   return Math.max(0, Math.floor(parsed));
 }
 
-function formatTalentSources(sources: Array<{ label: string; count: number }>): string {
-  return sources
+function formatCareerSources(sources: Array<{ label: string; count: number }>): string {
+  const formatted = sources
     .filter((source) => source.label.trim().length > 0 && source.count > 0)
-    .map((source) => `${source.label} ${source.count}`)
+    .map((source) => `${source.label} x${source.count}`)
     .join(' / ');
+  return formatted || '-';
 }
 
 function skillNextCost(current: number): number {
