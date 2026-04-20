@@ -215,8 +215,16 @@ async function main() {
     let nextModuleJsonc = moduleJsonSource;
     nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'version', moduleJson.version);
     nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'url', moduleJson.url);
-    nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'manifest', moduleJson.manifest);
-    nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'download', moduleJson.download);
+    nextModuleJsonc = replaceTopLevelStringProperty(
+      nextModuleJsonc,
+      'manifest',
+      moduleJson.manifest,
+    );
+    nextModuleJsonc = replaceTopLevelStringProperty(
+      nextModuleJsonc,
+      'download',
+      moduleJson.download,
+    );
     fs.writeFileSync(modulePath, nextModuleJsonc, 'utf8');
 
     if (syncPackageVersion) {
