@@ -1,5 +1,5 @@
 import type { AggregateItemBuilderSettings } from '../../../types/module';
-import { MODULE_ID } from './species';
+import { MODULE_ID } from '.';
 
 export const AGGREGATE_ITEM_BUILDER_SETTINGS_KEY = 'aggregateItemBuilderSettings';
 

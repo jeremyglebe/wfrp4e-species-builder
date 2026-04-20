@@ -1,17 +1,15 @@
 /**
- * Module bootstrap entrypoint loaded by Foundry.
+ * This file is the module entry point which kicks off all other code execution.
+ *
+ * If it seems quite empty, that is because most Foundry module code really starts
+ * in response to specific Foundry hooks- and our pattern has hook handlers in ./hooks/
+ *
+ * So, by importing ./hooks here, we effectively start the module's code execution.
+ *
+ * If you want to know which hook fires first to start things off, it is usually 'init'.
  */
 import './hooks';
-import { ensureFreshModuleStyles } from './services/runtime-style-cache';
 
 // Import global styles (affects Foundry and Vue components).
 // CSS files need to be imported somewhere to be included in the build.
-// Since this is global and not intended to be imported individually by
-// each component, it is imported here at the module entrypoint.
 import '../../styles/global.css';
-
-const MODULE_ID = 'wfrp4e-species-builder';
-
-Hooks.once('init', () => {
-  ensureFreshModuleStyles(MODULE_ID);
-});

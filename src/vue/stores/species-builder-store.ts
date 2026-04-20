@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { computed, ref, toRaw, watch } from 'vue';
 import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../types/module';
-import { Data } from '../../module/services/data-service';
-import { Settings } from '../../module/services/settings';
+import { SettingsService } from '../../module/services/settings';
+import { FactoryService } from '@/module/services/factory';
 
 /**
  * Species Builder Pinia store.
@@ -204,7 +204,7 @@ export const useSpeciesBuilderStore = defineStore('species-builder', () => {
   async function saveToStorage(): Promise<void> {
     isSaving.value = true;
     try {
-      await Settings.saveCustomSpeciesDefinitions(structuredClone(toRaw(speciesList.value)));
+      await SettingsService.saveCustomSpeciesDefinitions(structuredClone(toRaw(speciesList.value)));
       savedSinceOpen.value = true;
       initialSnapshot.value = JSON.stringify(speciesList.value);
     } finally {
@@ -225,7 +225,7 @@ export const useSpeciesBuilderStore = defineStore('species-builder', () => {
    * Creates a new empty species, adds it to the list, and selects it.
    */
   function addSpecies(): void {
-    const newSpecies = Data.Empty.CustomSpeciesDefinition();
+    const newSpecies = FactoryService.Empty.CustomSpeciesDefinition();
     speciesList.value.push(newSpecies);
     selectedSpeciesId.value = newSpecies.id;
     selectedSubspeciesId.value = null;
@@ -243,7 +243,7 @@ export const useSpeciesBuilderStore = defineStore('species-builder', () => {
       selectedSpecies.value.subspecies = {};
     }
 
-    const newSubspecies = Data.Empty.CustomSubspeciesDefinition();
+    const newSubspecies = FactoryService.Empty.CustomSubspeciesDefinition();
     selectedSpecies.value.subspecies[newSubspecies.id] = newSubspecies;
     selectedSubspeciesId.value = newSubspecies.id;
     isSubspeciesBuilderOpen.value = true;

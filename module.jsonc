@@ -1,0 +1,61 @@
+{
+  "id": "wfrp4e-species-builder",
+  // This is what will show up in the Foundry UI
+  "title": "WFRP4e Species Builder",
+  "description": "Adds world-configured custom species support for WFRP 4e.",
+  // Changes to the version number trigger update notifications
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Jeremy Glebe"
+    }
+  ],
+  // The minimum Foundry version this module is compatible with, and the latest version it was verified to work with.
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  // Basically compatibilities or requirements, but for other packages instead of Foundry versions
+  "relationships": {
+    // A list of games this module can be used with, along with what versions are supported.
+    "systems": [
+      {
+        // This module is only for WFRP4e
+        "id": "wfrp4e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "9",
+          "verified": "9"
+        }
+      }
+    ]
+  },
+  "esmodules": [
+    // This is the only code file we need to load
+    // Our bundler turns all of the source code into this single file
+    "dist/module.js"
+  ],
+  "styles": [
+    // Same as above, but for CSS files.
+    // Most CSS is actually inside of Vue components, and so won't be built here.
+    // But any actual CSS files that, importantly, are *imported* somewhere
+    //   in the source code will be bundled into this single file.
+    "dist/app.css"
+  ],
+  // I don't know how to use localization files, but I should probably learn.
+  // This is the structure for them, though.
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "static/lang/en.json"
+    }
+  ],
+  // Source repo will often show in the Foundry UI.
+  "url": "https://github.com/jeremyglebe/wfrp4e-species-builder",
+  // This is the URL that Foundry checks for updates, and tells it where to download the package.
+  // This is actually just the built/released version of the file you're currently reading.
+  "manifest": "https://github.com/jeremyglebe/wfrp4e-species-builder/releases/latest/download/module.json",
+  // The module, built and zipped up.
+  "download": "https://github.com/jeremyglebe/wfrp4e-species-builder/releases/latest/download/module.zip"
+}

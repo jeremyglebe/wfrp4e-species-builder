@@ -5,8 +5,9 @@ import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
+import stripJsonComments from 'strip-json-comments';
 
-const modulePath = path.resolve('module.json');
+const modulePath = path.resolve('module.jsonc');
 const packagePath = path.resolve('package.json');
 
 const rl = createInterface({ input, output });
@@ -94,13 +95,27 @@ function writeJson(filePath, data) {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
+function escapeJsonString(value) {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function replaceTopLevelStringProperty(source, key, value) {
+  const matcher = new RegExp(`(^\\s*"${key}"\\s*:\\s*")([^"\\\\]|\\\\.)*("\\s*,?\\s*$)`, 'm');
+  if (!matcher.test(source)) {
+    throw new Error(`Could not find top-level "${key}" in module.jsonc`);
+  }
+
+  return source.replace(matcher, `$1${escapeJsonString(value)}$3`);
+}
+
 function printHeader(title) {
   console.log(`\n=== ${title} ===`);
 }
 
 async function main() {
   try {
-    const moduleJson = JSON.parse(fs.readFileSync(modulePath, 'utf8'));
+    const moduleJsonSource = fs.readFileSync(modulePath, 'utf8');
+    const moduleJson = JSON.parse(stripJsonComments(moduleJsonSource));
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
     printHeader('Interactive Release Creator');
@@ -197,7 +212,13 @@ async function main() {
       packageJson.version = nextVersion;
     }
 
-    writeJson(modulePath, moduleJson);
+    let nextModuleJsonc = moduleJsonSource;
+    nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'version', moduleJson.version);
+    nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'url', moduleJson.url);
+    nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'manifest', moduleJson.manifest);
+    nextModuleJsonc = replaceTopLevelStringProperty(nextModuleJsonc, 'download', moduleJson.download);
+    fs.writeFileSync(modulePath, nextModuleJsonc, 'utf8');
+
     if (syncPackageVersion) {
       writeJson(packagePath, packageJson);
     }
@@ -212,7 +233,7 @@ async function main() {
     printHeader('Git Operations');
     const createGitCommit = await askYesNo('Create commit and git tag now?', true);
     if (createGitCommit) {
-      const filesToAdd = ['module.json'];
+      const filesToAdd = ['module.jsonc'];
       if (syncPackageVersion) {
         filesToAdd.push('package.json');
       }
@@ -234,7 +255,7 @@ async function main() {
     }
 
     printHeader('Release Summary');
-    console.log(`Updated module.json to version ${nextVersion}`);
+    console.log(`Updated module.jsonc to version ${nextVersion}`);
     console.log(`Release tag: ${tagName}`);
     console.log(`Repository: ${repoBaseUrl}`);
     console.log('Done.');

@@ -1,6 +1,6 @@
 import type { EffectToItemBuilderSettings } from '../../../types/module';
 import { getAllowedCarrierTypes } from './aggregate-items';
-import { MODULE_ID } from './species';
+import { MODULE_ID } from '.';
 
 export const EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY = 'effectToItemBuilderSettings';
 

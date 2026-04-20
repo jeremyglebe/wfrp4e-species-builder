@@ -27,7 +27,7 @@ type WfrpSpeciesConfigFragment = Pick<
  * Transform and inject live together here because they represent one runtime
  * pipeline: module storage model -> WFRP split config model -> config merge.
  */
-export const Injection = {
+export const InjectionService = {
   applySpeciesDefinitions,
   transformSpeciesDefinitionsToWfrpConfig,
   injectCustomSpeciesIntoWfrpConfig,

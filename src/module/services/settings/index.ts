@@ -1,35 +1,10 @@
-export {
-  CUSTOM_SPECIES_SETTING_KEY,
-  MODULE_ID,
-  SETTINGS_SCHEMA_VERSION,
-  Settings,
-} from './species';
+import { register } from './register';
+import { loadCustomSpeciesDefinitions, saveCustomSpeciesDefinitions } from './species';
 
-export {
-  NPC_BUILDER_SETTINGS_KEY,
-  getActorFolderByName,
-  getDefaultNPCBuilderSettings,
-  getOrCreateActorFolderByName,
-  loadNPCBuilderSettings,
-  normalizeFolderName,
-  saveNPCBuilderSettings,
-} from './npcs';
+export const MODULE_ID = 'wfrp4e-species-builder';
 
-export {
-  AGGREGATE_ITEM_BUILDER_SETTINGS_KEY,
-  getAllItemFoldersSorted,
-  getAllowedCarrierTypes,
-  getAvailableCarrierTypes,
-  getDefaultAggregateItemBuilderSettings,
-  getOrCreateItemFolderByName,
-  loadAggregateItemBuilderSettings,
-  saveAggregateItemBuilderSettings,
-} from './aggregate-items';
-
-export {
-  EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY,
-  getAvailableEffectCarrierTypes,
-  getDefaultEffectToItemBuilderSettings,
-  loadEffectToItemBuilderSettings,
-  saveEffectToItemBuilderSettings,
-} from './effect-items';
+export const SettingsService = {
+  register,
+  loadCustomSpeciesDefinitions,
+  saveCustomSpeciesDefinitions,
+} as const;

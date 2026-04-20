@@ -42,7 +42,7 @@ jobs:
           node <<'EOF'
           const fs = require('fs');
 
-          const manifestPath = 'module.json';
+          const manifestPath = 'build/module.json';
           const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
           const tagName = process.env.TAG_NAME;

@@ -1,11 +1,34 @@
 import { fileURLToPath, URL } from 'node:url';
 
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vueDevTools from 'vite-plugin-vue-devtools';
 
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import stripJsonComments from 'strip-json-comments';
+
+/**
+ * Vite plugin that reads module.jsonc, strips comments, and emits module.json
+ * into the build output. This lets you annotate module.json with // comments
+ * in the source repo without shipping them to Foundry.
+ */
+function moduleJsonPlugin(): Plugin {
+  return {
+    name: 'module-jsonc',
+    generateBundle() {
+      const raw = readFileSync(resolve(__dirname, 'module.jsonc'), 'utf-8');
+      const stripped = stripJsonComments(raw);
+      const clean = JSON.stringify(JSON.parse(stripped), null, 2);
+      this.emitFile({
+        type: 'asset',
+        fileName: 'module.json',
+        source: clean,
+      });
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -17,14 +40,11 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vueDevTools(),
+      moduleJsonPlugin(),
       viteStaticCopy({
         targets: [
           {
             src: 'static/**/*',
-            dest: '.',
-          },
-          {
-            src: 'module.json',
             dest: '.',
           },
         ],

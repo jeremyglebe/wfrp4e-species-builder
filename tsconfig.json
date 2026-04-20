@@ -1,10 +1,21 @@
 {
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
-    "types": ["fvtt-types"],
+    "types": [
+      // not needed for all type referencing
+      // but does ensure Foundry's global objects are recognized by the editor
+      "fvtt-types"
+    ],
     "target": "ESNext",
     "moduleResolution": "bundler",
     "strict": true
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts"]
+  "include": [
+    // Typescript files
+    "src/**/*.ts",
+    // Vue Single File Components
+    "src/**/*.vue",
+    // Vite configuration for building
+    "vite.config.ts"
+  ]
 }

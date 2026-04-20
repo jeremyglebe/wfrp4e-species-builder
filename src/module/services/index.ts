@@ -1,11 +1,6 @@
 /**
  * Service boundary exports for module runtime and data flow.
  */
-export { Data } from './data-service';
-export {
-  CUSTOM_SPECIES_SETTING_KEY,
-  MODULE_ID,
-  SETTINGS_SCHEMA_VERSION,
-  Settings,
-} from './settings';
-export { Injection } from './injection-service';
+export { FactoryService } from './factory';
+export { MODULE_ID, SettingsService } from './settings';
+export { InjectionService } from './injection-service';

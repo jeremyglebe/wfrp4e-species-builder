@@ -1,7 +1,7 @@
 import SpeciesBuilderApp from '../../vue/apps/species-builder/SpeciesBuilderApp.vue';
 import { pinia } from '../../vue/pinia';
 import { useSpeciesBuilderStore } from '../../vue/stores';
-import { Settings } from '../services/settings';
+import { SettingsService } from '../services/settings';
 import { FoundryVueApplication } from './FoundryVueApplication';
 
 /**
@@ -39,7 +39,7 @@ export class SpeciesBuilderApplication extends FoundryVueApplication {
     // The store is accessed via the shared pinia instance so it is available
     // before the Vue app (and its app.use(pinia) call) exists.
     const store = useSpeciesBuilderStore(pinia);
-    store.hydrateFromStorage(Settings.loadCustomSpeciesDefinitions());
+    store.hydrateFromStorage(SettingsService.loadCustomSpeciesDefinitions());
     return {};
   }
 

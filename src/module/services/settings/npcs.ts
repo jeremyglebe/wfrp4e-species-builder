@@ -1,5 +1,5 @@
 import type { NPCBuilderSettings } from '../../../types/module';
-import { MODULE_ID } from './species';
+import { MODULE_ID } from '.';
 
 export const NPC_BUILDER_SETTINGS_KEY = 'npcBuilderSettings';
 
