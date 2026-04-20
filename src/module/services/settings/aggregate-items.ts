@@ -1,24 +1,12 @@
 import type { AggregateItemBuilderSettings } from '../../../types/module';
-import { MODULE_ID } from '.';
+import { MODULE_NAMESPACE } from '.';
+import { FactoryService } from '../factory';
 
-export const AGGREGATE_ITEM_BUILDER_SETTINGS_KEY = 'aggregateItemBuilderSettings';
-
-export function getDefaultAggregateItemBuilderSettings(): AggregateItemBuilderSettings {
-  return {
-    defaultFolderId: '',
-    fallbackFolderName: 'Effect Items',
-    rememberLastFolder: true,
-    defaultPrefix: 'Bundle:',
-    defaultSuffix: '',
-    defaultItemType: 'trait',
-    effectMode: 'single',
-    defaultEffectName: 'Grant Items',
-  };
-}
+export const SETTINGS_KEY = 'aggregateItemBuilderSettings';
 
 export function loadAggregateItemBuilderSettings(): AggregateItemBuilderSettings {
-  const defaults = getDefaultAggregateItemBuilderSettings();
-  const saved = game?.settings?.get(MODULE_ID, AGGREGATE_ITEM_BUILDER_SETTINGS_KEY) as
+  const defaults = FactoryService.Default.AggregateItemBuilderSettings();
+  const saved = game?.settings?.get(MODULE_NAMESPACE, SETTINGS_KEY) as
     | Partial<AggregateItemBuilderSettings>
     | undefined;
 
@@ -32,7 +20,7 @@ export function loadAggregateItemBuilderSettings(): AggregateItemBuilderSettings
 export async function saveAggregateItemBuilderSettings(
   settings: AggregateItemBuilderSettings,
 ): Promise<void> {
-  await game?.settings?.set(MODULE_ID, AGGREGATE_ITEM_BUILDER_SETTINGS_KEY, settings);
+  await game?.settings?.set(MODULE_NAMESPACE, SETTINGS_KEY, settings);
 }
 
 export function getAllowedCarrierTypes(): string[] {

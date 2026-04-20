@@ -15,7 +15,7 @@ export interface AggregateItemBuilderSettings {
 /**
  * Effect-to-Item Builder settings.
  */
-export interface EffectToItemBuilderSettings {
+export interface EffectItemsSettingsConfig {
   namePrefix: string;
   defaultItemType: string;
   defaultFolderId: string;

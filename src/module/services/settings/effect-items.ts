@@ -1,36 +1,27 @@
-import type { EffectToItemBuilderSettings } from '../../../types/module';
+import type { EffectItemsSettingsConfig } from '../../../types/module';
 import { getAllowedCarrierTypes } from './aggregate-items';
-import { MODULE_ID } from '.';
+import { MODULE_NAMESPACE } from '.';
+import { FactoryService } from '../factory';
 
-export const EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY = 'effectToItemBuilderSettings';
+export const SETTINGS_KEY = 'effectToItemBuilderSettings';
 
-export function getDefaultEffectToItemBuilderSettings(): EffectToItemBuilderSettings {
-  return {
-    namePrefix: 'Effect',
-    defaultItemType: 'trait',
-    defaultFolderId: '',
-    fallbackFolderName: 'Effect Items',
-    rememberLastFolder: true,
-  };
-}
-
-export function loadEffectToItemBuilderSettings(): EffectToItemBuilderSettings {
-  const defaults = getDefaultEffectToItemBuilderSettings();
-  const saved = game?.settings?.get(MODULE_ID, EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY) as
-    | Partial<EffectToItemBuilderSettings>
+export function loadEffectToItemBuilderSettings(): EffectItemsSettingsConfig {
+  const defaults = FactoryService.Default.EffectItemsSettingsConfig();
+  const saved = game?.settings?.get(MODULE_NAMESPACE, SETTINGS_KEY) as
+    | Partial<EffectItemsSettingsConfig>
     | undefined;
 
   if (!saved || typeof saved !== 'object') {
     return defaults;
   }
 
-  return foundry.utils.mergeObject(defaults, saved) as EffectToItemBuilderSettings;
+  return foundry.utils.mergeObject(defaults, saved) as EffectItemsSettingsConfig;
 }
 
 export async function saveEffectToItemBuilderSettings(
-  settings: EffectToItemBuilderSettings,
+  settings: EffectItemsSettingsConfig,
 ): Promise<void> {
-  await game?.settings?.set(MODULE_ID, EFFECT_TO_ITEM_BUILDER_SETTINGS_KEY, settings);
+  await game?.settings?.set(MODULE_NAMESPACE, SETTINGS_KEY, settings);
 }
 
 export function getAvailableEffectCarrierTypes(): string[] {

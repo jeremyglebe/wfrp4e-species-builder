@@ -1,14 +1,14 @@
-import { MODULE_ID } from '.';
+import { MODULE_NAMESPACE } from '.';
 import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../../../types/module';
 import { FactoryService } from '../factory';
 
 /**
  * Foundry settings boundary for module storage.
  */
-export const CUSTOM_SPECIES_SETTING_KEY = 'customSpeciesDefinitions';
+export const SETTINGS_KEY = 'customSpeciesDefinitions';
 
 export function loadCustomSpeciesDefinitions(): CustomSpeciesDefinition[] {
-  const rawValue = game?.settings?.get(MODULE_ID, CUSTOM_SPECIES_SETTING_KEY) as
+  const rawValue = game?.settings?.get(MODULE_NAMESPACE, SETTINGS_KEY) as
     | Partial<CustomSpeciesSettingsData>
     | undefined;
 
@@ -28,7 +28,7 @@ export function loadCustomSpeciesDefinitions(): CustomSpeciesDefinition[] {
 export async function saveCustomSpeciesDefinitions(
   species: CustomSpeciesDefinition[],
 ): Promise<void> {
-  await game?.settings?.set(MODULE_ID, CUSTOM_SPECIES_SETTING_KEY, {
+  await game?.settings?.set(MODULE_NAMESPACE, SETTINGS_KEY, {
     species,
   });
 }

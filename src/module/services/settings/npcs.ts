@@ -1,7 +1,8 @@
 import type { NPCBuilderSettings } from '../../../types/module';
-import { MODULE_ID } from '.';
+import { MODULE_NAMESPACE } from '.';
+import { FactoryService } from '../factory';
 
-export const NPC_BUILDER_SETTINGS_KEY = 'npcBuilderSettings';
+export const SETTINGS_KEY = 'npcBuilderSettings';
 
 export const COMMON_QUICK_TRAIT_NAMES = [
   'Armour',
@@ -23,29 +24,9 @@ export const COMMON_QUICK_TRAIT_NAMES = [
   'Weapon',
 ] as const;
 
-/**
- * Default NPC Builder settings.
- */
-export function getDefaultNPCBuilderSettings(): NPCBuilderSettings {
-  return {
-    includeSpeciesInName: false,
-    autoAddLowerCareers: false,
-    enhanceImage: true,
-    circularToken: true,
-    baseFolderName: 'NPC Builder Bases',
-    outputFolderName: 'NPC Builder Output',
-    quickTraitsFolderName: 'NPC Builder Quick Traits',
-    allowDuplicateTraits: false,
-    allowUpgradeBaseSkills: false,
-    allowUpgradeBaseCharacteristics: false,
-    allowUpgradeBaseTalents: true,
-    allowUpgradeBaseTrappings: false,
-  };
-}
-
 export function loadNPCBuilderSettings(): NPCBuilderSettings {
-  const defaultSettings = getDefaultNPCBuilderSettings();
-  const saved = game?.settings?.get(MODULE_ID, NPC_BUILDER_SETTINGS_KEY) as
+  const defaultSettings = FactoryService.Default.NPCBuilderSettings();
+  const saved = game?.settings?.get(MODULE_NAMESPACE, SETTINGS_KEY) as
     | Partial<NPCBuilderSettings>
     | undefined;
 
@@ -57,7 +38,7 @@ export function loadNPCBuilderSettings(): NPCBuilderSettings {
 }
 
 export async function saveNPCBuilderSettings(settings: NPCBuilderSettings): Promise<void> {
-  await game?.settings?.set(MODULE_ID, NPC_BUILDER_SETTINGS_KEY, settings);
+  await game?.settings?.set(MODULE_NAMESPACE, SETTINGS_KEY, settings);
 }
 
 export function normalizeFolderName(name: unknown): string {

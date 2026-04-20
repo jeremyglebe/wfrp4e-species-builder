@@ -1,8 +1,8 @@
 ﻿import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../types/module';
+import { FactoryService } from '../../module/services/factory';
 import {
-  getDefaultNPCBuilderSettings,
   getItemFolderByName,
   normalizeFolderName,
   saveNPCBuilderSettings,
@@ -214,7 +214,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   // ---------------------------------------------------------------------------
 
   /** NPC Builder configuration (folder names, behavior flags). */
-  const settings = ref<NPCBuilderSettings>(getDefaultNPCBuilderSettings());
+  const settings = ref<NPCBuilderSettings>(FactoryService.Default.NPCBuilderSettings());
 
   // ---------------------------------------------------------------------------
   // Skills / talents / characteristics advancement state (sandbox editor)

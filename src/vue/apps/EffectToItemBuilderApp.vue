@@ -1,12 +1,18 @@
 <template>
   <div class="item-builder application">
     <div class="item-builder__tabs">
-      <button type="button" :class="['item-builder__tab', { 'is-active': activeTab === 'build' }]"
-        @click="activeTab = 'build'">
+      <button
+        type="button"
+        :class="['item-builder__tab', { 'is-active': activeTab === 'build' }]"
+        @click="activeTab = 'build'"
+      >
         Build
       </button>
-      <button type="button" :class="['item-builder__tab', { 'is-active': activeTab === 'options' }]"
-        @click="activeTab = 'options'">
+      <button
+        type="button"
+        :class="['item-builder__tab', { 'is-active': activeTab === 'options' }]"
+        @click="activeTab = 'options'"
+      >
         Options
       </button>
     </div>
@@ -19,7 +25,9 @@
           <span>Actor</span>
           <select v-model="selectedActorId">
             <option value="">-- Select Actor --</option>
-            <option v-for="actor in actors" :key="actor.id" :value="actor.id">{{ actor.name }}</option>
+            <option v-for="actor in actors" :key="actor.id" :value="actor.id">
+              {{ actor.name }}
+            </option>
           </select>
         </label>
 
@@ -27,7 +35,8 @@
           <span>Effect from Actor</span>
           <select v-model="selectedEffectUuid" :disabled="!selectedActorId">
             <option value="">-- Select Effect --</option>
-            <option v-for="effect in actorEffects" :key="effect.uuid" :value="effect.uuid">{{ effect.name }}
+            <option v-for="effect in actorEffects" :key="effect.uuid" :value="effect.uuid">
+              {{ effect.name }}
             </option>
           </select>
         </label>
@@ -37,7 +46,11 @@
           <input v-model="manualEffectUuid" type="text" placeholder="Actor...ActiveEffect..." />
         </label>
 
-        <button type="button" class="item-builder__button item-builder__button--ghost" @click="useOpenEffect">
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--ghost"
+          @click="useOpenEffect"
+        >
           Use Open Effect Sheet
         </button>
 
@@ -49,23 +62,36 @@
       <section class="item-builder__section item-builder__side">
         <h3>Create Carrier Item</h3>
 
-        <label class="item-builder__field"><span>Name</span><input v-model="itemName" type="text" /></label>
-        <label class="item-builder__field"><span>Type</span>
+        <label class="item-builder__field"
+          ><span>Name</span><input v-model="itemName" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Type</span>
           <select v-model="itemType">
-            <option v-for="typeName in availableTypes" :key="typeName" :value="typeName">{{ typeName }}
+            <option v-for="typeName in availableTypes" :key="typeName" :value="typeName">
+              {{ typeName }}
             </option>
           </select>
         </label>
-        <label class="item-builder__field"><span>Folder</span>
+        <label class="item-builder__field"
+          ><span>Folder</span>
           <select v-model="folderId">
             <option value="">(Use / create: {{ settings.fallbackFolderName }})</option>
-            <option v-for="folder in itemFolders" :key="folder.id || folder._id || folder.name" :value="folder.id">
+            <option
+              v-for="folder in itemFolders"
+              :key="folder.id || folder._id || folder.name"
+              :value="folder.id"
+            >
               {{ folder.name }}
             </option>
           </select>
         </label>
 
-        <button type="button" class="item-builder__button item-builder__button--primary" @click="createItem">
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--primary"
+          @click="createItem"
+        >
           Create Item
         </button>
       </section>
@@ -74,23 +100,35 @@
     <div class="item-builder__content" v-else>
       <section class="item-builder__section item-builder__main">
         <h3>Defaults</h3>
-        <label class="item-builder__field"><span>Name Prefix</span><input v-model="settings.namePrefix"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Default Item Type</span>
+        <label class="item-builder__field"
+          ><span>Name Prefix</span><input v-model="settings.namePrefix" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Default Item Type</span>
           <select v-model="settings.defaultItemType">
-            <option v-for="typeName in availableTypes" :key="typeName" :value="typeName">{{ typeName }}
+            <option v-for="typeName in availableTypes" :key="typeName" :value="typeName">
+              {{ typeName }}
             </option>
           </select>
         </label>
-        <label class="item-builder__field"><span>Fallback Folder Name</span><input v-model="settings.fallbackFolderName"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Remember Folder Selection</span><input
-            v-model="settings.rememberLastFolder" type="checkbox" /></label>
+        <label class="item-builder__field"
+          ><span>Fallback Folder Name</span
+          ><input v-model="settings.fallbackFolderName" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Remember Folder Selection</span
+          ><input v-model="settings.rememberLastFolder" type="checkbox"
+        /></label>
       </section>
       <section class="item-builder__section item-builder__side">
         <h3>Actions</h3>
-        <button type="button" class="item-builder__button item-builder__button--primary" @click="saveSettings">Save
-          Settings</button>
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--primary"
+          @click="saveSettings"
+        >
+          Save Settings
+        </button>
       </section>
     </div>
   </div>
@@ -107,10 +145,10 @@ import {
   loadEffectToItemBuilderSettings,
   saveEffectToItemBuilderSettings,
 } from '../../module/services/settings/effect-items';
-import type { EffectToItemBuilderSettings } from '../../types/module';
+import type { EffectItemsSettingsConfig } from '../../types/module';
 
 const activeTab = ref<'build' | 'options'>('build');
-const settings = ref<EffectToItemBuilderSettings>(loadEffectToItemBuilderSettings());
+const settings = ref<EffectItemsSettingsConfig>(loadEffectToItemBuilderSettings());
 
 const selectedActorId = ref('');
 const selectedEffectUuid = ref('');
@@ -120,7 +158,9 @@ const itemName = ref('');
 const itemType = ref(settings.value.defaultItemType || 'trait');
 const folderId = ref(settings.value.defaultFolderId || '');
 
-const actors = computed(() => (game.actors?.contents ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)) as any[]);
+const actors = computed(
+  () => (game.actors?.contents ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)) as any[],
+);
 const actorEffects = computed(() => {
   if (!selectedActorId.value) return [] as any[];
   const actor = game.actors?.get(selectedActorId.value);
@@ -197,14 +237,17 @@ async function createItem(): Promise<void> {
   }
 
   const chosenType = itemType.value || settings.value.defaultItemType || 'trait';
-  const chosenName = itemName.value.trim() || `${settings.value.namePrefix || 'Effect'}: ${effectDocument.name}`;
+  const chosenName =
+    itemName.value.trim() || `${settings.value.namePrefix || 'Effect'}: ${effectDocument.name}`;
 
   let targetFolder: any | null = null;
   if (folderId.value) {
     targetFolder = game.folders?.get(folderId.value) ?? null;
   }
   if (!targetFolder) {
-    targetFolder = await getOrCreateItemFolderByName(settings.value.fallbackFolderName || 'Effect Items');
+    targetFolder = await getOrCreateItemFolderByName(
+      settings.value.fallbackFolderName || 'Effect Items',
+    );
   }
 
   if (settings.value.rememberLastFolder) {
@@ -217,7 +260,8 @@ async function createItem(): Promise<void> {
   clonedEffectData.disabled = false;
   clonedEffectData.transfer = true;
 
-  const effectIcon = clonedEffectData.icon ?? effectDocument.icon ?? effectDocument.img ?? 'icons/svg/aura.svg';
+  const effectIcon =
+    clonedEffectData.icon ?? effectDocument.icon ?? effectDocument.img ?? 'icons/svg/aura.svg';
   clonedEffectData.icon = effectIcon;
 
   const templateForType = (game.system?.template?.Item as any)?.[chosenType] ?? {};
@@ -227,20 +271,23 @@ async function createItem(): Promise<void> {
     `<p><strong>Grants Effect:</strong> ${foundry.utils.escapeHTML(effectDocument.name)}</p><hr/><p><em>Created by Effect to Item Builder.</em></p>`,
   );
 
-  const createdItem = await Item.create({
-    name: chosenName,
-    type: chosenType as any,
-    img: effectIcon,
-    folder: targetFolder?.id ?? null,
-    system: systemData,
-    effects: [clonedEffectData],
-    flags: {
-      'effect-to-item-builder': {
-        sourceEffectUuid: effectDocument.uuid,
-        createdAt: Date.now(),
+  const createdItem = await Item.create(
+    {
+      name: chosenName,
+      type: chosenType as any,
+      img: effectIcon,
+      folder: targetFolder?.id ?? null,
+      system: systemData,
+      effects: [clonedEffectData],
+      flags: {
+        'effect-to-item-builder': {
+          sourceEffectUuid: effectDocument.uuid,
+          createdAt: Date.now(),
+        },
       },
-    },
-  } as any, { renderSheet: true });
+    } as any,
+    { renderSheet: true },
+  );
 
   if (!createdItem) {
     ui.notifications?.error('Item creation failed.');
@@ -256,7 +303,9 @@ async function createItem(): Promise<void> {
     // non-fatal
   }
 
-  ui.notifications?.info(`Created "${createdItem.name}" (${createdItem.type}) that grants "${effectDocument.name}".`);
+  ui.notifications?.info(
+    `Created "${createdItem.name}" (${createdItem.type}) that grants "${effectDocument.name}".`,
+  );
 }
 
 async function saveSettings(): Promise<void> {
