@@ -2,7 +2,7 @@
   "id": "wfrp4e-species-builder",
   "title": "WFRP4e Species Builder",
   "description": "Adds world-configured custom species support for WFRP 4e.",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "authors": [
     {
       "name": "Jeremy Glebe"
@@ -24,8 +24,12 @@
       }
     ]
   },
-  "esmodules": ["dist/module.js"],
-  "styles": ["dist/app.css"],
+  "esmodules": [
+    "dist/module.js"
+  ],
+  "styles": [
+    "dist/app.css"
+  ],
   "languages": [
     {
       "lang": "en",
