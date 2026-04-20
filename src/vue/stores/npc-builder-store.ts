@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../types/module';
 import {
   getDefaultNPCBuilderSettings,
+  getItemFolderByName,
+  normalizeFolderName,
   saveNPCBuilderSettings,
 } from '../../module/services/settings/npcs';
 import {
@@ -85,6 +87,35 @@ export interface NpcBuilderTrappingEntry {
   resolved: boolean | null;
 }
 
+export interface NpcBuilderTraitEntry {
+  key: string;
+  name: string;
+  originalName: string;
+  quantity: number;
+  itemType: 'trait';
+  sourceKind: 'career' | 'base' | 'user';
+  includedFromCareer: boolean;
+  includedFromBase: boolean;
+  includedFromUser: boolean;
+  editable: boolean;
+  ignoredFromCareer: boolean;
+  ignored: boolean;
+  sourceSummary: string;
+  careerSources: AdvancementSourceCount[];
+  documentUuid: string | null;
+  sourceData: Record<string, unknown> | null;
+  /** Trait XP is currently optional and defaults to 0 for all entries. */
+  xp: number;
+}
+
+export interface QuickTraitOption {
+  key: string;
+  name: string;
+  uuid: string;
+  img: string;
+  sourceData: Record<string, unknown> | null;
+}
+
 /**
  * Career-derived advancement baseline snapshot.
  * Built directly from queued careers, before base actor inclusion.
@@ -106,6 +137,10 @@ export interface CareerAdvancementBaseline {
   trappings: Record<string, number>;
   /** Career-derived trapping source counts used for UI explanations. */
   trappingSources: Record<string, AdvancementSourceCount[]>;
+  /** Career-derived traits by display name. */
+  traits: Record<string, number>;
+  /** Career-derived trait source counts used for UI explanations. */
+  traitSources: Record<string, AdvancementSourceCount[]>;
 }
 
 /**
@@ -197,6 +232,15 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
   /** Trappings gathered from careers, base actor inventory, and manual additions. */
   const trappings = ref<Record<string, NpcBuilderTrappingEntry>>({});
 
+  /** Traits gathered from careers, base actor inventory, and manual additions. */
+  const traits = ref<Record<string, NpcBuilderTraitEntry>>({});
+
+  /** Traits available for quick-add/randomization from the configured world folder. */
+  const quickTraitOptions = ref<QuickTraitOption[]>([]);
+
+  /** Whether the configured quick traits folder currently exists. */
+  const quickTraitsFolderFound = ref(false);
+
   // ---------------------------------------------------------------------------
   // Auto-allocation state
   // ---------------------------------------------------------------------------
@@ -246,8 +290,15 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     }, 0);
   });
 
+  const traitsXp = computed(() => {
+    return Object.values(traits.value).reduce((sum, entry) => {
+      if (entry.ignored || entry.ignoredFromCareer) return sum;
+      return sum + toSafeNonNegativeInteger(entry.xp);
+    }, 0);
+  });
+
   const totalXp = computed(() => {
-    return skillsXp.value + talentsXp.value + characteristicsXp.value;
+    return skillsXp.value + talentsXp.value + characteristicsXp.value + traitsXp.value;
   });
 
   /**
@@ -274,8 +325,18 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     }, 0);
   });
 
+  const baseTraitsXp = computed(() => {
+    return Object.values(traits.value).reduce((sum, entry) => {
+      if (entry.sourceKind === 'user') return sum;
+      if (entry.ignored || entry.ignoredFromCareer) return sum;
+      return sum + toSafeNonNegativeInteger(entry.xp);
+    }, 0);
+  });
+
   const totalBaseXp = computed(() => {
-    return baseSkillsXp.value + baseTalentsXp.value + baseCharacteristicsXp.value;
+    return (
+      baseSkillsXp.value + baseTalentsXp.value + baseCharacteristicsXp.value + baseTraitsXp.value
+    );
   });
 
   const xpDelta = computed(() => {
@@ -303,6 +364,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     talents.value = {};
     characteristics.value = {};
     trappings.value = {};
+    traits.value = {};
+    quickTraitOptions.value = [];
+    quickTraitsFolderFound.value = false;
     targetXp.value = 0;
     allocationTargetKind.value = 'total';
     allocationStrategy.value = 'evenly';
@@ -334,6 +398,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
       characteristicSources: {},
       trappings: {},
       trappingSources: {},
+      traits: {},
+      traitSources: {},
     };
 
     for (const careerEntry of careers.value) {
@@ -427,6 +493,27 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
             existingSources.push({ label: careerEntry.name, count: quantity });
           }
           baseline.trappingSources[trimmedName] = existingSources;
+        }
+      }
+
+      const careerTraits = careerItemAny?.system?.traits;
+      if (Array.isArray(careerTraits)) {
+        for (const traitName of careerTraits) {
+          const trimmedName = String(traitName ?? '').trim();
+          if (!trimmedName) continue;
+
+          baseline.traits[trimmedName] = (baseline.traits[trimmedName] ?? 0) + quantity;
+
+          const existingSources = baseline.traitSources[trimmedName] ?? [];
+          const existingCareerSource = existingSources.find(
+            (source) => source.label === careerEntry.name,
+          );
+          if (existingCareerSource) {
+            existingCareerSource.count += quantity;
+          } else {
+            existingSources.push({ label: careerEntry.name, count: quantity });
+          }
+          baseline.traitSources[trimmedName] = existingSources;
         }
       }
     }
@@ -680,6 +767,363 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     }
 
     trappings.value = next;
+  }
+
+  function normalizeTraitName(name: unknown): string {
+    return String(name ?? '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function getQuickTraitsFolderName(): string {
+    return normalizeFolderName(settings.value.quickTraitsFolderName || 'NPC Builder Quick Traits');
+  }
+
+  function readBaseActorTraits(baseActor: any | null): Record<string, NpcBuilderTraitEntry> {
+    const result: Record<string, NpcBuilderTraitEntry> = {};
+    if (!baseActor || typeof baseActor !== 'object') return result;
+
+    for (const item of baseActor?.items?.contents ?? []) {
+      const itemType = String(item?.type ?? '').toLowerCase();
+      if (itemType !== 'trait') continue;
+
+      const itemName = String(item?.name ?? '').trim();
+      if (!itemName) continue;
+
+      const key = `base:trait:${normalizeTraitName(itemName)}`;
+      result[key] = {
+        key,
+        name: itemName,
+        originalName: itemName,
+        quantity: 1,
+        itemType: 'trait',
+        sourceKind: 'base',
+        includedFromCareer: false,
+        includedFromBase: true,
+        includedFromUser: false,
+        editable: false,
+        ignoredFromCareer: false,
+        ignored: false,
+        sourceSummary: baseActor.name ? `Base: ${baseActor.name}` : 'Base actor',
+        careerSources: [],
+        documentUuid: String(item?.uuid ?? '').trim() || null,
+        sourceData: (item?.toObject?.() as Record<string, unknown> | undefined) ?? null,
+        xp: 0,
+      };
+    }
+
+    return result;
+  }
+
+  async function resolveTraitItemByName(name: string): Promise<any | null> {
+    const normalizedName = String(name ?? '').trim();
+    if (!normalizedName) return null;
+
+    const utility = (game as any)?.wfrp4e?.utility;
+    if (typeof utility?.findItem === 'function') {
+      try {
+        return (await utility.findItem(normalizedName, ['trait'])) ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    return (
+      game.items?.contents.find((item: any) => {
+        return (
+          String(item?.type ?? '').toLowerCase() === 'trait' &&
+          String(item?.name ?? '')
+            .trim()
+            .toLowerCase() === normalizedName.toLowerCase()
+        );
+      }) ?? null
+    );
+  }
+
+  async function buildCareerTraits(): Promise<Record<string, NpcBuilderTraitEntry>> {
+    const baseline = await buildCareerAdvancements();
+    const result: Record<string, NpcBuilderTraitEntry> = {};
+
+    for (const [name, quantity] of Object.entries(baseline.traits)) {
+      const resolvedItem = await resolveTraitItemByName(name);
+      const key = `career:trait:${normalizeTraitName(name)}`;
+      result[key] = {
+        key,
+        name,
+        originalName: name,
+        quantity: Math.max(1, toSafeNonNegativeInteger(quantity)),
+        itemType: 'trait',
+        sourceKind: 'career',
+        includedFromCareer: true,
+        includedFromBase: false,
+        includedFromUser: false,
+        editable: false,
+        ignoredFromCareer: false,
+        ignored: false,
+        sourceSummary: 'Career-derived',
+        careerSources: (baseline.traitSources[name] ?? []).map((source) => ({ ...source })),
+        documentUuid: String((resolvedItem as any)?.uuid ?? '').trim() || null,
+        sourceData:
+          ((resolvedItem as any)?.toObject?.() as Record<string, unknown> | undefined) ?? null,
+        xp: 0,
+      };
+    }
+
+    return result;
+  }
+
+  async function hydrateTraits(baseActor: any | null): Promise<void> {
+    const existing = traits.value;
+    const next: Record<string, NpcBuilderTraitEntry> = {};
+
+    const careerTraits = await buildCareerTraits();
+    for (const [key, entry] of Object.entries(careerTraits)) {
+      const existingEntry = existing[key];
+      next[key] = {
+        ...entry,
+        ignoredFromCareer: existingEntry?.ignoredFromCareer ?? false,
+      };
+    }
+
+    const baseTraits = readBaseActorTraits(baseActor);
+    for (const [key, entry] of Object.entries(baseTraits)) {
+      const existingEntry = existing[key];
+      next[key] = existingEntry ? { ...entry, ignored: existingEntry.ignored } : entry;
+    }
+
+    for (const [key, entry] of Object.entries(existing)) {
+      if (entry.sourceKind === 'user') {
+        next[key] = { ...entry };
+      }
+    }
+
+    traits.value = next;
+  }
+
+  async function refreshQuickTraitOptions(): Promise<void> {
+    const folderName = getQuickTraitsFolderName();
+    if (!folderName) {
+      quickTraitsFolderFound.value = false;
+      quickTraitOptions.value = [];
+      return;
+    }
+
+    const folder = getItemFolderByName(folderName);
+    quickTraitsFolderFound.value = Boolean(folder);
+    if (!folder) {
+      quickTraitOptions.value = [];
+      return;
+    }
+
+    quickTraitOptions.value = (game.items?.contents ?? [])
+      .filter(
+        (item: any) =>
+          item?.folder?.id === folder.id && String(item?.type ?? '').toLowerCase() === 'trait',
+      )
+      .map((item: any) => ({
+        key: String(item?.uuid ?? item?.id ?? ''),
+        name: String(item?.name ?? '').trim(),
+        uuid: String(item?.uuid ?? '').trim(),
+        img: String(item?.img ?? ''),
+        sourceData: (item?.toObject?.() as Record<string, unknown> | undefined) ?? null,
+      }))
+      .filter((option: QuickTraitOption) => option.name.length > 0)
+      .sort((a: QuickTraitOption, b: QuickTraitOption) => a.name.localeCompare(b.name));
+  }
+
+  function hasTrait(name: string): boolean {
+    const normalizedName = normalizeTraitName(name);
+    if (!normalizedName) return false;
+
+    return Object.values(traits.value).some((entry) => {
+      if (entry.ignored || entry.ignoredFromCareer) return false;
+      return normalizeTraitName(entry.name) === normalizedName;
+    });
+  }
+
+  function getTraitEffectiveValue(name: string): number {
+    const normalizedName = normalizeTraitName(name);
+    if (!normalizedName) return 0;
+
+    return Object.values(traits.value).reduce((sum, entry) => {
+      if (entry.ignored || entry.ignoredFromCareer) return sum;
+      if (normalizeTraitName(entry.name) !== normalizedName) return sum;
+      return sum + Math.max(1, toSafeNonNegativeInteger(entry.quantity));
+    }, 0);
+  }
+
+  function createUserTraitKey(): string {
+    return `user:trait:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function addUserTrait(
+    partial?: Partial<
+      Pick<NpcBuilderTraitEntry, 'name' | 'quantity' | 'documentUuid' | 'sourceData' | 'xp'>
+    >,
+  ): string | null {
+    const name = String(partial?.name ?? '').trim();
+    if (!name) return null;
+
+    if (!settings.value.allowDuplicateTraits && hasTrait(name)) {
+      return null;
+    }
+
+    const key = createUserTraitKey();
+    traits.value[key] = {
+      key,
+      name,
+      originalName: name,
+      quantity: Math.max(1, toSafeNonNegativeInteger(Number(partial?.quantity ?? 1))),
+      itemType: 'trait',
+      sourceKind: 'user',
+      includedFromCareer: false,
+      includedFromBase: false,
+      includedFromUser: true,
+      editable: true,
+      ignoredFromCareer: false,
+      ignored: false,
+      sourceSummary: 'User added',
+      careerSources: [],
+      documentUuid: String(partial?.documentUuid ?? '').trim() || null,
+      sourceData: partial?.sourceData ?? null,
+      xp: toSafeNonNegativeInteger(Number(partial?.xp ?? 0)),
+    };
+    return key;
+  }
+
+  function addQuickTraitByUuid(uuid: string): string | null {
+    const normalizedUuid = String(uuid ?? '').trim();
+    if (!normalizedUuid) return null;
+
+    const option = quickTraitOptions.value.find((entry) => entry.uuid === normalizedUuid);
+    if (!option) return null;
+
+    return addUserTrait({
+      name: option.name,
+      quantity: 1,
+      documentUuid: option.uuid,
+      sourceData: option.sourceData,
+      xp: 0,
+    });
+  }
+
+  function hasUserTrait(name: string): boolean {
+    const normalizedName = normalizeTraitName(name);
+    if (!normalizedName) return false;
+
+    return Object.values(traits.value).some((entry) => {
+      if (entry.sourceKind !== 'user') return false;
+      if (entry.ignored || entry.ignoredFromCareer) return false;
+      return normalizeTraitName(entry.name) === normalizedName;
+    });
+  }
+
+  function removeUserTraitsByName(name: string): number {
+    const normalizedName = normalizeTraitName(name);
+    if (!normalizedName) return 0;
+
+    const keysToDelete = Object.entries(traits.value)
+      .filter(([_, entry]) => {
+        return (
+          entry.sourceKind === 'user' &&
+          !entry.ignored &&
+          !entry.ignoredFromCareer &&
+          normalizeTraitName(entry.name) === normalizedName
+        );
+      })
+      .map(([key]) => key);
+
+    for (const key of keysToDelete) {
+      delete traits.value[key];
+    }
+
+    return keysToDelete.length;
+  }
+
+  function toggleQuickTraitByUuid(uuid: string): 'added' | 'removed' | null {
+    const normalizedUuid = String(uuid ?? '').trim();
+    if (!normalizedUuid) return null;
+
+    const option = quickTraitOptions.value.find((entry) => entry.uuid === normalizedUuid);
+    if (!option) return null;
+
+    if (!settings.value.allowDuplicateTraits && hasUserTrait(option.name)) {
+      const removedCount = removeUserTraitsByName(option.name);
+      return removedCount > 0 ? 'removed' : null;
+    }
+
+    const addedKey = addQuickTraitByUuid(option.uuid);
+    return addedKey ? 'added' : null;
+  }
+
+  function removeTrait(key: string): void {
+    const existing = traits.value[key];
+    if (!existing) return;
+
+    if (existing.sourceKind === 'career') {
+      traits.value[key] = {
+        ...existing,
+        ignoredFromCareer: true,
+      };
+      return;
+    }
+
+    if (existing.sourceKind === 'base') {
+      traits.value[key] = {
+        ...existing,
+        ignored: true,
+      };
+      return;
+    }
+
+    delete traits.value[key];
+  }
+
+  function addRandomQuickTraits(count: number): string[] {
+    const sanitizedCount = Math.max(1, toSafeNonNegativeInteger(Number(count || 1)));
+
+    const filtered = quickTraitOptions.value.filter((option) => {
+      if (!settings.value.allowDuplicateTraits && hasTrait(option.name)) {
+        return false;
+      }
+      return true;
+    });
+
+    if (!filtered.length) {
+      return [];
+    }
+
+    const pool = [...filtered];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j] as QuickTraitOption, pool[i] as QuickTraitOption];
+    }
+
+    const selected = pool.slice(
+      0,
+      settings.value.allowDuplicateTraits ? sanitizedCount : Math.min(sanitizedCount, pool.length),
+    );
+    const addedKeys: string[] = [];
+
+    if (
+      settings.value.allowDuplicateTraits &&
+      selected.length < sanitizedCount &&
+      filtered.length > 0
+    ) {
+      while (selected.length < sanitizedCount) {
+        const randomIndex = Math.floor(Math.random() * filtered.length);
+        selected.push(filtered[randomIndex] as QuickTraitOption);
+      }
+    }
+
+    for (const option of selected) {
+      const nextKey = addQuickTraitByUuid(option.uuid);
+      if (nextKey) {
+        addedKeys.push(nextKey);
+      }
+    }
+
+    return addedKeys;
   }
 
   /**
@@ -1168,6 +1612,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     talents.value = {};
     characteristics.value = {};
     trappings.value = {};
+    traits.value = {};
+    quickTraitOptions.value = [];
+    quickTraitsFolderFound.value = false;
     preAllocationSnapshot.value = null;
     lastAllocationUnspent.value = 0;
   }
@@ -1186,6 +1633,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     talents,
     characteristics,
     trappings,
+    traits,
+    quickTraitOptions,
+    quickTraitsFolderFound,
     targetXp,
     allocationTargetKind,
     allocationStrategy,
@@ -1195,6 +1645,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     skillsXp,
     talentsXp,
     characteristicsXp,
+    traitsXp,
     totalXp,
     totalBaseXp,
     xpDelta,
@@ -1211,6 +1662,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     resetWorkingNpc,
     hydrateAdvancements,
     hydrateTrappings,
+    hydrateTraits,
+    refreshQuickTraitOptions,
     setSkillCurrent,
     setTalentCurrent,
     setCharacteristicCurrent,
@@ -1222,6 +1675,14 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     updateTrappingQuantity,
     removeTrapping,
     ignoreUnresolvedCareerTrappings,
+    addUserTrait,
+    removeTrait,
+    hasTrait,
+    hasUserTrait,
+    getTraitEffectiveValue,
+    addQuickTraitByUuid,
+    toggleQuickTraitByUuid,
+    addRandomQuickTraits,
     applyXpAllocation,
     resetXpAllocation,
   };

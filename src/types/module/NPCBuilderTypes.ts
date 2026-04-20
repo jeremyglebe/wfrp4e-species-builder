@@ -14,6 +14,10 @@ export interface NPCBuilderSettings {
   baseFolderName: string;
   /** Name of the folder where generated NPCs will be created */
   outputFolderName: string;
+  /** Name of the world Item folder used as source for quick-add/random traits */
+  quickTraitsFolderName: string;
+  /** Whether duplicate traits are allowed for quick-add and random trait actions */
+  allowDuplicateTraits: boolean;
   /** Whether base actor skills may appear as upgradeable entries in the advancement tab */
   allowUpgradeBaseSkills: boolean;
   /** Whether base actor characteristics may appear as upgradeable entries in the advancement tab */

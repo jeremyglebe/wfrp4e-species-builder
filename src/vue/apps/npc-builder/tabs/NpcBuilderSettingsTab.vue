@@ -28,6 +28,25 @@
                     </span>
                 </div>
             </div>
+
+            <div class="npc-builder__form-group">
+                <label>Quick Traits Folder Name:</label>
+                <div class="npc-builder__input-row">
+                    <input v-model="settings.quickTraitsFolderName" type="text" class="npc-builder__input" />
+                    <button type="button" class="npc-builder__button npc-builder__button--primary"
+                        @click="saveQuickTraitsFolderSettings" :disabled="isBusy">
+                        Save
+                    </button>
+                </div>
+                <div class="npc-builder__status">
+                    <span :style="{ color: quickTraitsFolderFound ? '#888' : '#d35400' }">
+                        {{ quickTraitsFolderFound ? '✓ Found' : '✗ Not found yet' }}
+                    </span>
+                </div>
+                <div class="npc-builder__hint">
+                    Used by Quick Add and Random Traits. Each Item in this world folder is treated as a trait option.
+                </div>
+            </div>
         </div>
 
         <div class="npc-builder__section">
@@ -56,6 +75,14 @@
                 <input v-model="settings.circularToken" type="checkbox" />
                 <span>Circular Token?</span>
             </label>
+
+            <label class="npc-builder__checkbox">
+                <input v-model="settings.allowDuplicateTraits" type="checkbox" />
+                <span>Allow duplicate traits in Quick Traits actions</span>
+            </label>
+            <div class="npc-builder__hint">
+                When disabled, quick trait buttons act as toggles and random add will choose distinct traits.
+            </div>
         </div>
 
         <div class="npc-builder__section">
@@ -107,7 +134,9 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
     getActorFolderByName,
+    getItemFolderByName,
     getOrCreateActorFolderByName,
+    getOrCreateItemFolderByName,
     normalizeFolderName,
 } from '../../../../module/services/settings/npcs';
 import { useNpcBuilderStore } from '../../../stores';
@@ -127,15 +156,38 @@ const outputFolderFound = computed(() => {
     return Boolean(getActorFolderByName(settings.value.outputFolderName));
 });
 
+const quickTraitsFolderFound = computed(() => {
+    return Boolean(getItemFolderByName(settings.value.quickTraitsFolderName));
+});
+
 async function saveFolderSettings(): Promise<void> {
     settings.value.baseFolderName = normalizeFolderName(settings.value.baseFolderName);
     settings.value.outputFolderName = normalizeFolderName(settings.value.outputFolderName);
+    settings.value.quickTraitsFolderName = normalizeFolderName(settings.value.quickTraitsFolderName);
     await store.saveToStorage();
 
     if (settings.value.baseFolderName) {
         await getOrCreateActorFolderByName(settings.value.baseFolderName);
     }
 
+    if (settings.value.quickTraitsFolderName) {
+        await getOrCreateItemFolderByName(settings.value.quickTraitsFolderName);
+    }
+
+    await store.refreshQuickTraitOptions();
+
     ui.notifications?.info('NPC Builder folder settings saved.');
+}
+
+async function saveQuickTraitsFolderSettings(): Promise<void> {
+    settings.value.quickTraitsFolderName = normalizeFolderName(settings.value.quickTraitsFolderName);
+    await store.saveToStorage();
+
+    if (settings.value.quickTraitsFolderName) {
+        await getOrCreateItemFolderByName(settings.value.quickTraitsFolderName);
+    }
+
+    await store.refreshQuickTraitOptions();
+    ui.notifications?.info('Quick traits folder settings saved.');
 }
 </script>

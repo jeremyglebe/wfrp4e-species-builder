@@ -122,6 +122,7 @@ const {
   talents,
   characteristics,
   trappings,
+  traits,
 } =
   storeToRefs(store);
 
@@ -137,6 +138,7 @@ const builderSettingsSignature = computed(() => {
     settings.value.allowUpgradeBaseCharacteristics,
     settings.value.allowUpgradeBaseTalents,
     settings.value.allowUpgradeBaseTrappings,
+    settings.value.quickTraitsFolderName,
   ].join('|');
 });
 
@@ -366,6 +368,8 @@ async function syncAdvancementsFromBuildInputs(): Promise<void> {
 
   await store.hydrateAdvancements(baseActor, true);
   await store.hydrateTrappings(baseActor);
+  await store.hydrateTraits(baseActor);
+  await store.refreshQuickTraitOptions();
 }
 
 async function getUpscalerLazy(): Promise<any> {
@@ -535,6 +539,91 @@ async function applyBuilderTrappingsToActor(actor: any): Promise<void> {
   }
 }
 
+function buildFallbackTraitData(name: string): Record<string, unknown> {
+  return {
+    name,
+    type: 'trait',
+    img: 'icons/svg/aura.svg',
+    system: {},
+  };
+}
+
+async function resolveTraitSourceDataByName(name: string): Promise<Record<string, unknown> | null> {
+  const normalizedName = String(name ?? '').trim();
+  if (!normalizedName) return null;
+
+  const utility = (game as any)?.wfrp4e?.utility;
+  if (typeof utility?.findItem === 'function') {
+    try {
+      const item = await utility.findItem(normalizedName, ['trait']);
+      return (item?.toObject?.() as Record<string, unknown> | undefined) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function withTraitData(sourceData: Record<string, unknown> | null, name: string): Record<string, unknown> {
+  const next = sourceData ? foundry.utils.deepClone(sourceData) : buildFallbackTraitData(name);
+  delete (next as any)._id;
+  next.name = name;
+  next.type = 'trait';
+  (next as any).system ??= {};
+  return next;
+}
+
+async function applyBuilderTraitsToActor(actor: any): Promise<void> {
+  if (!actor) return;
+
+  const existingTraits = (actor.items?.contents ?? []).filter((item: any) => {
+    return String(item?.type ?? '').toLowerCase() === 'trait';
+  });
+
+  const itemDeletes: string[] = [];
+  const itemCreates: Record<string, unknown>[] = [];
+
+  for (const entry of Object.values(traits.value)) {
+    const matchName = String(entry.originalName || entry.name).trim().toLowerCase();
+    const matches = existingTraits.filter((item: any) => {
+      return String(item?.name ?? '').trim().toLowerCase() === matchName;
+    });
+
+    if (entry.sourceKind === 'base') {
+      if (entry.ignored) {
+        itemDeletes.push(...matches.map((item: any) => String(item.id)));
+      }
+      continue;
+    }
+
+    if (entry.sourceKind === 'career' && entry.ignoredFromCareer) {
+      continue;
+    }
+
+    if (entry.sourceKind === 'user' && entry.ignored) {
+      continue;
+    }
+
+    let sourceData = entry.sourceData;
+    if (!sourceData && entry.sourceKind === 'career') {
+      sourceData = await resolveTraitSourceDataByName(entry.name);
+    }
+
+    const quantity = Math.max(1, Math.floor(Number(entry.quantity) || 1));
+    for (let index = 0; index < quantity; index++) {
+      itemCreates.push(withTraitData(sourceData, entry.name));
+    }
+  }
+
+  if (itemDeletes.length) {
+    await actor.deleteEmbeddedDocuments('Item', itemDeletes);
+  }
+  if (itemCreates.length) {
+    await actor.createEmbeddedDocuments('Item', itemCreates);
+  }
+}
+
 async function buildNPC(): Promise<void> {
   const baseActorToUse = await resolveBaseActor();
   if (!baseActorToUse) {
@@ -609,6 +698,9 @@ async function buildNPC(): Promise<void> {
 
     busyMessage.value = 'Applying advancement edits...';
     await applyBuilderAdvancementValuesToActor(createdActor, baseAdvancementSnapshot);
+
+    busyMessage.value = 'Applying traits...';
+    await applyBuilderTraitsToActor(createdActor);
 
     busyMessage.value = 'Applying trappings...';
     await applyBuilderTrappingsToActor(createdActor);
@@ -898,6 +990,18 @@ watch(
   background: rgb(120 40 30 / 60%);
   color: #f4a690;
   border: 1px solid rgb(180 70 50 / 50%);
+}
+
+.npc-builder__trait-source-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid rgb(137 103 77 / 50%);
+  border-radius: 3px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #d8c3a8;
+  background: rgba(33, 24, 19, 0.6);
 }
 
 .npc-builder__unresolved-dialog {

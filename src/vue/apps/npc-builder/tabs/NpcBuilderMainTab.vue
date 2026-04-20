@@ -142,9 +142,34 @@
       </div>
 
       <div class="npc-builder__section">
-        <div class="npc-builder__section-title">Advanced Preview (planned)</div>
+        <div class="npc-builder__section-title">Quick Traits</div>
         <div class="npc-builder__hint">
-          Trappings/talents preview and unresolved warnings will go here.
+          Source folder: {{ settings.quickTraitsFolderName || 'NPC Builder Quick Traits' }}
+        </div>
+
+        <div class="npc-builder__alloc-actions">
+          <span>Add</span>
+          <input v-model.number="randomTraitCount" type="number" min="1" class="npc-builder__quantity-input"
+            style="width: 64px;" />
+          <span>Random Traits</span>
+          <button type="button" class="npc-builder__button npc-builder__button--small"
+            :disabled="isBusy || quickTraitOptions.length === 0" @click="onRandomTraits">
+            +
+          </button>
+        </div>
+
+        <div v-if="quickTraitOptions.length === 0" class="npc-builder__empty">
+          No quick traits found in the configured folder.
+        </div>
+
+        <div v-else class="npc-builder__button-group" style="flex-wrap: wrap; gap: 6px;">
+          <button v-for="option in quickTraitOptions" :key="option.key" type="button"
+            class="npc-builder__button npc-builder__button--small"
+            :class="{ 'npc-builder__button--ghost': hasUserTrait(option.name) }" :disabled="isBusy"
+            @click="onQuickAddTrait(option.uuid)">
+            {{ option.name }}
+            <span v-if="hasUserTrait(option.name)"> (Added)</span>
+          </button>
         </div>
       </div>
 
@@ -161,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import type { BaseActorOption, CareerEntry } from '../../../../types/module';
 import { getActorFolderByName } from '../../../../module/services/settings/npcs';
@@ -179,10 +204,28 @@ const props = defineProps<{
 }>();
 
 const store = useNpcBuilderStore();
-const { removeCareer, moveCareer, setBaseActorOverride, addOrIncrementCareer, setCareerQuantity } = store;
+const {
+  removeCareer,
+  moveCareer,
+  setBaseActorOverride,
+  addOrIncrementCareer,
+  setCareerQuantity,
+  toggleQuickTraitByUuid,
+  addRandomQuickTraits,
+  hasUserTrait,
+} = store;
 
-const { baseActorId, baseActorOverride, careers, showBaseOverrideDropZone, settings, isBusy } =
-  storeToRefs(store);
+const {
+  baseActorId,
+  baseActorOverride,
+  careers,
+  showBaseOverrideDropZone,
+  settings,
+  isBusy,
+  quickTraitOptions,
+} = storeToRefs(store);
+
+const randomTraitCount = ref(1);
 
 const careerIndex = new CareerIndexService({
   getCareerGroup: (item) => getCareerGroup(item),
@@ -258,6 +301,24 @@ const totalCareerInstances = computed(() => {
     return sum + (Number.isFinite(career.quantity) ? career.quantity : 1);
   }, 0);
 });
+
+function onQuickAddTrait(uuid: string): void {
+  const result = toggleQuickTraitByUuid(uuid);
+  if (!result) {
+    ui.notifications?.warn('Could not add selected trait.');
+  }
+}
+
+function onRandomTraits(): void {
+  const requestedCount = Math.max(1, Math.floor(Number(randomTraitCount.value) || 1));
+  const added = addRandomQuickTraits(requestedCount);
+  if (!added.length) {
+    ui.notifications?.warn('No matching traits available to add.');
+    return;
+  }
+
+  ui.notifications?.info(`Added ${added.length} random trait${added.length === 1 ? '' : 's'}.`);
+}
 
 function handleBaseActorSelectionChange(): void {
   if (baseActorId.value) {

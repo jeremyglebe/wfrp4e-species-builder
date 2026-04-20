@@ -14,6 +14,8 @@ export function getDefaultNPCBuilderSettings(): NPCBuilderSettings {
     circularToken: true,
     baseFolderName: 'NPC Builder Bases',
     outputFolderName: 'NPC Builder Output',
+    quickTraitsFolderName: 'NPC Builder Quick Traits',
+    allowDuplicateTraits: false,
     allowUpgradeBaseSkills: false,
     allowUpgradeBaseCharacteristics: false,
     allowUpgradeBaseTalents: true,
@@ -55,6 +57,19 @@ export function getActorFolderByName(name: string): Folder | null {
   return (foundFolder as Folder) ?? null;
 }
 
+export function getItemFolderByName(name: string): Folder | null {
+  const normalizedName = normalizeFolderName(name);
+  if (!normalizedName) {
+    return null;
+  }
+
+  const foundFolder = game.folders?.contents.find(
+    (folder) => folder.type === 'Item' && folder.name === normalizedName,
+  );
+
+  return (foundFolder as Folder) ?? null;
+}
+
 export async function getOrCreateActorFolderByName(name: string): Promise<Folder | null> {
   const normalizedName = normalizeFolderName(name);
   if (!normalizedName) {
@@ -69,6 +84,26 @@ export async function getOrCreateActorFolderByName(name: string): Promise<Folder
   const newFolder = (await Folder.create({
     name: normalizedName,
     type: 'Actor',
+    color: '#000000',
+  })) as Folder | undefined;
+
+  return newFolder ?? null;
+}
+
+export async function getOrCreateItemFolderByName(name: string): Promise<Folder | null> {
+  const normalizedName = normalizeFolderName(name);
+  if (!normalizedName) {
+    return null;
+  }
+
+  const existingFolder = getItemFolderByName(normalizedName);
+  if (existingFolder) {
+    return existingFolder;
+  }
+
+  const newFolder = (await Folder.create({
+    name: normalizedName,
+    type: 'Item',
     color: '#000000',
   })) as Folder | undefined;
 
