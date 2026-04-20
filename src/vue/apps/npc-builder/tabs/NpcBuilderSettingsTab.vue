@@ -8,7 +8,7 @@
                 <div class="npc-builder__input-row">
                     <input v-model="settings.baseFolderName" type="text" class="npc-builder__input" />
                     <button type="button" class="npc-builder__button npc-builder__button--primary"
-                        @click="onSaveFolderSettings" :disabled="isBusy">
+                        @click="saveFolderSettings" :disabled="isBusy">
                         Save
                     </button>
                 </div>
@@ -96,17 +96,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { getActorFolderByName } from '../../../../module/services/settings/npcs';
+import {
+    getActorFolderByName,
+    getOrCreateActorFolderByName,
+    normalizeFolderName,
+} from '../../../../module/services/settings/npcs';
 import { useNpcBuilderStore } from '../../../stores';
 
 /**
  * Settings tab: hosts existing folder and behavior configuration UI.
  * No behavior changes; this is moved out of Main to keep tab concerns focused.
  */
-const props = defineProps<{
-    onSaveFolderSettings: () => Promise<void>;
-}>();
-
 const store = useNpcBuilderStore();
 const { settings, isBusy } = storeToRefs(store);
 
@@ -117,4 +117,16 @@ const baseFolderFound = computed(() => {
 const outputFolderFound = computed(() => {
     return Boolean(getActorFolderByName(settings.value.outputFolderName));
 });
+
+async function saveFolderSettings(): Promise<void> {
+    settings.value.baseFolderName = normalizeFolderName(settings.value.baseFolderName);
+    settings.value.outputFolderName = normalizeFolderName(settings.value.outputFolderName);
+    await store.saveToStorage();
+
+    if (settings.value.baseFolderName) {
+        await getOrCreateActorFolderByName(settings.value.baseFolderName);
+    }
+
+    ui.notifications?.info('NPC Builder folder settings saved.');
+}
 </script>

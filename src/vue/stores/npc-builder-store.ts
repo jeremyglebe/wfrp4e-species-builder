@@ -737,6 +737,34 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     careers.value.push(entry);
   }
 
+  /** Adds a career or increments quantity if the same UUID is already queued. */
+  function addOrIncrementCareer(entry: CareerEntry, incrementBy = 1): number {
+    const existingIndex = careers.value.findIndex((career) => career.uuid === entry.uuid);
+    if (existingIndex >= 0) {
+      const existing = careers.value[existingIndex];
+      if (existing) {
+        existing.quantity = Math.max(
+          1,
+          Math.floor(Number(existing.quantity) || 1) + Math.max(1, Math.floor(incrementBy || 1)),
+        );
+      }
+      return existingIndex;
+    }
+
+    careers.value.push({
+      ...entry,
+      quantity: Math.max(1, Math.floor(Number(entry.quantity) || 1)),
+    });
+    return careers.value.length - 1;
+  }
+
+  /** Sets a queued career quantity at index, clamped to an integer >= 1. */
+  function setCareerQuantity(index: number, quantity: number): void {
+    const existing = careers.value[index];
+    if (!existing) return;
+    existing.quantity = Math.max(1, Math.floor(Number(quantity) || 1));
+  }
+
   /** Removes the career at the given queue index. */
   function removeCareer(index: number): void {
     careers.value.splice(index, 1);
@@ -803,6 +831,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     setBaseActor,
     setBaseActorOverride,
     addCareer,
+    addOrIncrementCareer,
+    setCareerQuantity,
     removeCareer,
     moveCareer,
     resetWorkingNpc,

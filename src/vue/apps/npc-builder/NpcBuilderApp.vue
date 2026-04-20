@@ -31,13 +31,12 @@
     </div>
 
     <div class="npc-builder__content">
-      <NpcBuilderMainTab v-if="activeTab === 'main'" :base-actors="baseActors" :on-base-actor-drop="handleBaseActorDrop"
-        :on-career-drop="handleCareerDrop" :on-build-npc="buildNPC" />
+      <NpcBuilderMainTab v-if="activeTab === 'main'" :on-build-npc="buildNPC" />
 
       <NpcBuilderSkillsTalentsTab v-else-if="activeTab === 'skills-talents'" />
       <NpcBuilderTraitsTab v-else-if="activeTab === 'traits'" />
       <NpcBuilderTrappingsTab v-else-if="activeTab === 'trappings'" />
-      <NpcBuilderSettingsTab v-else :on-save-folder-settings="saveFolderSettings" />
+      <NpcBuilderSettingsTab v-else />
     </div>
 
     <div class="npc-builder__footer">
@@ -52,14 +51,11 @@
 import { computed, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { x8 } from '@upscalerjs/esrgan-thick';
-import type { BaseActorOption, CareerEntry } from '../../../types/module';
 import {
-  getActorFolderByName,
   getOrCreateActorFolderByName,
   normalizeFolderName,
 } from '../../../module/services/settings/npcs';
-import { buildFinalName, getSpeciesName } from '../../../module/services/npc-builder-naming';
-import { CareerIndexService } from '../../../module/services/career-index-service';
+import { buildFinalName } from '../../../module/services/npc-builder-naming';
 import { useNpcBuilderStore } from '../../stores';
 import NpcBuilderMainTab from './tabs/NpcBuilderMainTab.vue';
 import NpcBuilderSkillsTalentsTab from './tabs/NpcBuilderSkillsTalentsTab.vue';
@@ -107,184 +103,6 @@ let advancementHydrationToken = 0;
 
 let upscalerInstance: any = null;
 
-const careerIndex = new CareerIndexService({
-  getCareerGroup: (item) => getCareerGroup(item),
-  getCareerLevel: (item) => getCareerLevel(item),
-});
-
-const baseActors = computed(() => {
-  const baseFolder = getActorFolderByName(settings.value.baseFolderName);
-  if (!baseFolder) {
-    return [];
-  }
-
-  return (game.actors?.contents ?? [])
-    .filter((actor: any) => actor.folder?.id === baseFolder.id)
-    .map((actor: any) => ({ id: actor.id, name: actor.name, img: actor.img, species: getSpeciesName(actor) }))
-    .sort((a: BaseActorOption, b: BaseActorOption) => a.name.localeCompare(b.name));
-});
-
-function getCareerGroup(item: any): string {
-  return item?.system?.careergroup?.value?.toString().trim() ?? '';
-}
-
-function getCareerLevel(item: any): number | null {
-  const rawLevel = item?.system?.level?.value;
-  const numericLevel = Number(rawLevel);
-  return Number.isFinite(numericLevel) ? numericLevel : null;
-}
-
-function makeCareerEntry(careerItem: any, quantity = 1): CareerEntry {
-  return {
-    name: careerItem.name,
-    uuid: careerItem.uuid,
-    img: careerItem.img || '',
-    careergroup: getCareerGroup(careerItem),
-    level: getCareerLevel(careerItem),
-    quantity: Math.max(1, Math.floor(Number(quantity) || 1)),
-  };
-}
-
-function findCareerIndexByUuid(uuid: string): number {
-  return careers.value.findIndex((career) => career.uuid === uuid);
-}
-
-async function handleBaseActorDrop(event: DragEvent): Promise<void> {
-  if (isBusy.value) return;
-  event.preventDefault();
-
-  let draggedItemData: any;
-  try {
-    draggedItemData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}');
-  } catch {
-    ui.notifications?.warn('Could not read dropped data.');
-    return;
-  }
-
-  let droppedActor: any | null = null;
-
-  if (draggedItemData.type === 'Actor' && draggedItemData.uuid) {
-    droppedActor = await fromUuid(draggedItemData.uuid);
-  } else if (draggedItemData.type === 'Actor' && draggedItemData.id) {
-    droppedActor = game.actors?.get(draggedItemData.id) ?? null;
-  } else if (draggedItemData.type === 'Token' && draggedItemData.uuid) {
-    const tokenDocument = await fromUuid(draggedItemData.uuid);
-    droppedActor = (tokenDocument as any)?.actor ?? null;
-  }
-
-  if (!droppedActor || droppedActor.documentName !== 'Actor') {
-    ui.notifications?.warn('Drop an Actor here.');
-    return;
-  }
-
-  baseActorOverride.value = {
-    id: droppedActor.id ?? '',
-    uuid: droppedActor.uuid,
-    name: droppedActor.name,
-    img: droppedActor.img || '',
-    species: getSpeciesName(droppedActor),
-  };
-}
-
-async function handleCareerDrop(event: DragEvent): Promise<void> {
-  if (isBusy.value) return;
-  event.preventDefault();
-
-  let draggedItemData: any;
-  try {
-    draggedItemData = JSON.parse(event.dataTransfer?.getData('text/plain') ?? '{}');
-  } catch {
-    ui.notifications?.warn('Could not read dropped data.');
-    return;
-  }
-
-  if (draggedItemData.type !== 'Item') {
-    ui.notifications?.warn('Only Item drops are supported here.');
-    return;
-  }
-
-  const droppedCareerItem = await fromUuid(draggedItemData.uuid);
-  if (!droppedCareerItem) {
-    ui.notifications?.error('Could not resolve dropped item.');
-    return;
-  }
-
-  if ((droppedCareerItem as any).type !== 'career') {
-    ui.notifications?.warn('Only Career items can be dropped here.');
-    return;
-  }
-
-  await addCareerToQueue(droppedCareerItem);
-}
-
-async function addCareerToQueue(item: any): Promise<void> {
-  const existingCareerIndex = findCareerIndexByUuid(item.uuid);
-
-  if (existingCareerIndex >= 0) {
-    const existingCareer = careers.value[existingCareerIndex];
-    if (existingCareer) {
-      existingCareer.quantity = Math.max(1, Math.floor(Number(existingCareer.quantity) || 1) + 1);
-      ui.notifications?.info(`Increased "${item.name}" quantity to ${existingCareer.quantity}.`);
-    }
-    return;
-  }
-
-  const droppedCareerEntry = makeCareerEntry(item, 1);
-
-  if (!settings.value.autoAddLowerCareers) {
-    careers.value.push(droppedCareerEntry);
-    return;
-  }
-
-  isBusy.value = true;
-  busyMessage.value = `Searching for lower careers in group "${getCareerGroup(item) || 'Unknown'}"...`;
-
-  try {
-    const lowerCareersFound = await careerIndex.getLowerCareersFor(item, careers.value);
-    const lowerCareerEntries = lowerCareersFound.map((indexedCareer) => ({
-      name: indexedCareer.name,
-      uuid: indexedCareer.uuid,
-      img: indexedCareer.img || '',
-      careergroup: indexedCareer.careergroup,
-      level: indexedCareer.level,
-      quantity: 1,
-    }));
-
-    for (const lowerCareerEntry of lowerCareerEntries) {
-      const existingIndex = findCareerIndexByUuid(lowerCareerEntry.uuid);
-      if (existingIndex >= 0) {
-        const existing = careers.value[existingIndex];
-        if (existing) {
-          existing.quantity += 1;
-        }
-      } else {
-        careers.value.push(lowerCareerEntry);
-      }
-    }
-
-    careers.value.push(droppedCareerEntry);
-
-    if (lowerCareerEntries.length) {
-      ui.notifications?.info(`Added ${lowerCareerEntries.length} lower career(ies) before "${item.name}".`);
-    }
-  } finally {
-    isBusy.value = false;
-    busyMessage.value = '';
-  }
-}
-
-async function saveFolderSettings(): Promise<void> {
-  settings.value.baseFolderName = normalizeFolderName(settings.value.baseFolderName);
-  settings.value.outputFolderName = normalizeFolderName(settings.value.outputFolderName);
-  await store.saveToStorage();
-
-  if (settings.value.baseFolderName) {
-    await getOrCreateActorFolderByName(settings.value.baseFolderName);
-  }
-
-  ui.notifications?.info('NPC Builder folder settings saved.');
-}
-
 async function resolveBaseActor(): Promise<any | null> {
   if (baseActorOverride.value?.uuid) {
     const overrideActor = await fromUuid(baseActorOverride.value.uuid);
@@ -327,7 +145,71 @@ function readNumberFromPaths(source: any, paths: string[]): number | null {
   return null;
 }
 
-async function applyBuilderAdvancementDeltasToActor(actor: any): Promise<void> {
+interface ActorAdvancementSnapshot {
+  skills: Record<string, number>;
+  talents: Record<string, number>;
+  characteristics: Record<string, number>;
+}
+
+function captureActorAdvancementSnapshot(actor: any): ActorAdvancementSnapshot {
+  const snapshot: ActorAdvancementSnapshot = {
+    skills: {},
+    talents: {},
+    characteristics: {},
+  };
+
+  const actorCharacteristics = actor?.system?.characteristics;
+  if (actorCharacteristics && typeof actorCharacteristics === 'object') {
+    for (const [key, value] of Object.entries(actorCharacteristics as Record<string, any>)) {
+      const normalizedKey = String(key).toUpperCase().trim();
+      if (!normalizedKey) continue;
+      const advances = readNumberFromPaths(value, [
+        'advances.value',
+        'advances',
+        'advance.value',
+        'advance',
+      ]);
+      snapshot.characteristics[normalizedKey] = toSafeNonNegativeInteger(advances ?? 0);
+    }
+  }
+
+  for (const item of actor?.items?.contents ?? []) {
+    const type = String(item?.type ?? '').toLowerCase();
+    const name = String(item?.name ?? '').trim();
+    if (!name) continue;
+
+    if (type === 'skill') {
+      const advances = readNumberFromPaths(item?.system, [
+        'advances.value',
+        'advances',
+        'level.value',
+        'level',
+      ]);
+      const next = toSafeNonNegativeInteger(advances ?? 0);
+      snapshot.skills[name] = Math.max(snapshot.skills[name] ?? 0, next);
+    }
+
+    if (type === 'talent') {
+      const rank = readNumberFromPaths(item?.system, [
+        'advances.value',
+        'advances',
+        'rank.value',
+        'rank',
+        'level.value',
+        'level',
+      ]);
+      const next = Math.max(1, toSafeNonNegativeInteger(rank ?? 1, 1));
+      snapshot.talents[name] = Math.max(snapshot.talents[name] ?? 1, next);
+    }
+  }
+
+  return snapshot;
+}
+
+async function applyBuilderAdvancementValuesToActor(
+  actor: any,
+  baseSnapshot: ActorAdvancementSnapshot,
+): Promise<void> {
   if (!actor) return;
 
   const itemUpdates: Array<Record<string, unknown>> = [];
@@ -353,44 +235,25 @@ async function applyBuilderAdvancementDeltasToActor(actor: any): Promise<void> {
   }
 
   for (const [name, entry] of Object.entries(skills.value)) {
-    const delta = toSafeNonNegativeInteger(entry.current) - toSafeNonNegativeInteger(entry.baseline);
-    if (!delta) continue;
+    const targetAdvances = (baseSnapshot.skills[name] ?? 0) + toSafeNonNegativeInteger(entry.current);
 
     const matchingSkills = skillsByName.get(name) ?? [];
     for (const skillItem of matchingSkills) {
-      const currentAdvances = readNumberFromPaths(skillItem?.system, [
-        'advances.value',
-        'advances',
-        'level.value',
-        'level',
-      ]);
-      const nextAdvances = Math.max(0, toSafeNonNegativeInteger(currentAdvances ?? 0) + delta);
       itemUpdates.push({
         _id: skillItem.id,
-        'system.advances.value': nextAdvances,
+        'system.advances.value': targetAdvances,
       });
     }
   }
 
   for (const [name, entry] of Object.entries(talents.value)) {
-    const delta =
-      toSafeNonNegativeInteger(entry.current) - toSafeNonNegativeInteger(entry.effectiveRankForCost);
-    if (!delta) continue;
+    const targetRank = Math.max(1, toSafeNonNegativeInteger(entry.current, 1));
 
     const matchingTalents = talentsByName.get(name) ?? [];
     for (const talentItem of matchingTalents) {
-      const currentRank = readNumberFromPaths(talentItem?.system, [
-        'advances.value',
-        'advances',
-        'rank.value',
-        'rank',
-        'level.value',
-        'level',
-      ]);
-      const nextRank = Math.max(1, toSafeNonNegativeInteger(currentRank ?? 1, 1) + delta);
       itemUpdates.push({
         _id: talentItem.id,
-        'system.advances.value': nextRank,
+        'system.advances.value': targetRank,
       });
     }
   }
@@ -402,20 +265,11 @@ async function applyBuilderAdvancementDeltasToActor(actor: any): Promise<void> {
   );
 
   for (const [characteristicName, entry] of Object.entries(characteristics.value)) {
-    const delta = toSafeNonNegativeInteger(entry.current) - toSafeNonNegativeInteger(entry.baseline);
-    if (!delta) continue;
-
     const actorKey = characteristicKeyByUpper.get(characteristicName.toUpperCase());
     if (!actorKey) continue;
 
-    const currentAdvances = readNumberFromPaths(actorCharacteristics?.[actorKey], [
-      'advances.value',
-      'advances',
-      'advance.value',
-      'advance',
-    ]);
-
-    const nextAdvances = Math.max(0, toSafeNonNegativeInteger(currentAdvances ?? 0) + delta);
+    const baseAdvances = baseSnapshot.characteristics[characteristicName.toUpperCase()] ?? 0;
+    const nextAdvances = baseAdvances + toSafeNonNegativeInteger(entry.current);
     const characteristicData = actorCharacteristics?.[actorKey];
     const usesNestedAdvanceValue =
       characteristicData &&
@@ -535,6 +389,8 @@ async function buildNPC(): Promise<void> {
       throw new Error('Failed to create actor.');
     }
 
+    const baseAdvancementSnapshot = captureActorAdvancementSnapshot(createdActor);
+
     for (const careerEntryInQueue of careers.value) {
       const careerItemToEmbed = await fromUuid(careerEntryInQueue.uuid);
       if (!careerItemToEmbed) continue;
@@ -549,7 +405,7 @@ async function buildNPC(): Promise<void> {
     }
 
     busyMessage.value = 'Applying advancement edits...';
-    await applyBuilderAdvancementDeltasToActor(createdActor);
+    await applyBuilderAdvancementValuesToActor(createdActor, baseAdvancementSnapshot);
 
     await new Promise((resolve) => setTimeout(resolve, 300));
 
