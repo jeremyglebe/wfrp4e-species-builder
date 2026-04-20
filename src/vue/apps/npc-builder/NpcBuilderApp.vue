@@ -659,9 +659,26 @@ watch(
   gap: 6px;
 }
 
+.npc-builder__adv-head {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) auto auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9f8a72;
+}
+
+.npc-builder__adv-head-xp,
+.npc-builder__adv-head-total {
+  justify-self: end;
+}
+
 .npc-builder__adv-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) auto auto auto;
+  grid-template-columns: minmax(120px, 1.4fr) auto auto auto auto;
   gap: 8px;
   align-items: center;
   padding: 8px;
@@ -697,6 +714,13 @@ watch(
   font-size: 11px;
   color: #d9a44f;
   justify-self: end;
+}
+
+.npc-builder__adv-total {
+  font-size: 11px;
+  color: #a9dbc0;
+  justify-self: end;
+  font-weight: 600;
 }
 
 .npc-builder__override-header {
@@ -1041,7 +1065,15 @@ watch(
     justify-items: start;
   }
 
+  .npc-builder__adv-head {
+    display: none;
+  }
+
   .npc-builder__adv-xp {
+    justify-self: start;
+  }
+
+  .npc-builder__adv-total {
     justify-self: start;
   }
 }

@@ -33,6 +33,10 @@ import {
 export interface AdvancementValue {
   /** Total baseline advances/ranks from all queued careers */
   baseline: number;
+  /** Starting value contributed by the selected base actor */
+  baseActorValue: number;
+  /** Base actor displayed total value used for preview totals in the UI */
+  baseActorTotal: number;
   /** User-edited current advances/ranks */
   current: number;
   /** True if at least one queued career grants this skill/talent/characteristic */
@@ -76,10 +80,14 @@ export interface BaseActorAdvancementSnapshot {
   actorName: string;
   /** Base actor skill advances: keyed by skill name */
   skills: Record<string, number>;
+  /** Base actor skill totals: keyed by skill name */
+  skillTotals: Record<string, number>;
   /** Base actor talent ranks: keyed by talent name */
   talents: Record<string, number>;
   /** Base actor characteristic advances: keyed by characteristic name */
   characteristics: Record<string, number>;
+  /** Base actor characteristic totals: keyed by characteristic name */
+  characteristicTotals: Record<string, number>;
 }
 
 export type AllocationTargetKind = 'total' | 'delta';
@@ -345,8 +353,10 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     const snapshot: BaseActorAdvancementSnapshot = {
       actorName: String((baseActor as any)?.name ?? '').trim(),
       skills: {},
+      skillTotals: {},
       talents: {},
       characteristics: {},
+      characteristicTotals: {},
     };
 
     if (!baseActor || typeof baseActor !== 'object') return snapshot;
@@ -364,7 +374,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
           'advance.value',
           'advance',
         ]);
+        const total = readNumberFromPaths(value, ['value', 'total.value', 'total']);
         snapshot.characteristics[normalizedKey] = toSafeNonNegativeInteger(advances ?? 0);
+        snapshot.characteristicTotals[normalizedKey] = toSafeNonNegativeInteger(total ?? 0);
       }
     }
 
@@ -381,7 +393,9 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
             'level.value',
             'level',
           ]);
+          const total = readNumberFromPaths(item?.system, ['total.value', 'total', 'value']);
           snapshot.skills[itemName] = toSafeNonNegativeInteger(advances ?? 0);
+          snapshot.skillTotals[itemName] = toSafeNonNegativeInteger(total ?? 0);
         }
 
         if (itemType === 'talent') {
@@ -461,6 +475,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     for (const skillName of allSkillKeys) {
       const fromCareer = careerBaseline.skills[skillName] ?? 0;
       const fromBase = baseActorValues.skills[skillName] ?? 0;
+      const fromBaseTotal = baseActorValues.skillTotals[skillName] ?? 0;
       const fromBaseExists = fromBase > 0;
       const shouldShow =
         fromCareer > 0 || (fromBaseExists && settings.value.allowUpgradeBaseSkills);
@@ -468,6 +483,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
       result.skills[skillName] = {
         baseline: fromCareer,
+        baseActorValue: fromBaseExists ? fromBase : 0,
+        baseActorTotal: fromBaseTotal,
         current: fromCareer,
         includedFromCareer: fromCareer > 0,
         includedFromBase: fromBaseExists,
@@ -493,6 +510,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
       result.talents[talentName] = {
         baseline: fromCareer,
+        baseActorValue: fromBaseExists ? fromBase : 0,
+        baseActorTotal: fromBaseExists ? fromBase : 0,
         current: effectiveRankForCost,
         includedFromCareer: fromCareer > 0,
         includedFromBase: fromBaseExists,
@@ -510,6 +529,7 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
     for (const charName of allCharKeys) {
       const fromCareer = careerBaseline.characteristics[charName] ?? 0;
       const fromBase = baseActorValues.characteristics[charName] ?? 0;
+      const fromBaseTotal = baseActorValues.characteristicTotals[charName] ?? 0;
       const fromCareerExists = fromCareer > 0;
       const fromBaseExists = fromBase > 0;
       const shouldShow =
@@ -518,6 +538,8 @@ export const useNpcBuilderStore = defineStore('npc-builder', () => {
 
       result.characteristics[charName] = {
         baseline: fromCareer,
+        baseActorValue: fromBaseExists ? fromBase : 0,
+        baseActorTotal: fromBaseTotal,
         current: fromCareer,
         includedFromCareer: fromCareerExists,
         includedFromBase: fromBaseExists,

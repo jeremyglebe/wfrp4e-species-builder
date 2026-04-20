@@ -11,6 +11,13 @@
       </div>
 
       <div v-else class="npc-builder__adv-list">
+        <div class="npc-builder__adv-head" aria-hidden="true">
+          <div class="npc-builder__adv-head-name">Name</div>
+          <div class="npc-builder__adv-head-meta">Base</div>
+          <div class="npc-builder__adv-head-controls">Adjust</div>
+          <div class="npc-builder__adv-head-xp">XP</div>
+          <div class="npc-builder__adv-head-total">Total</div>
+        </div>
         <div v-for="entry in skillRows" :key="`skill-${entry.name}`" class="npc-builder__adv-row">
           <div class="npc-builder__adv-name">{{ entry.name }}</div>
           <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
@@ -27,6 +34,7 @@
             </button>
           </div>
           <div class="npc-builder__adv-xp">XP {{ entry.xp }}</div>
+          <div class="npc-builder__adv-total">Total {{ entry.total }}</div>
         </div>
       </div>
     </div>
@@ -42,6 +50,13 @@
       </div>
 
       <div v-else class="npc-builder__adv-list">
+        <div class="npc-builder__adv-head" aria-hidden="true">
+          <div class="npc-builder__adv-head-name">Name</div>
+          <div class="npc-builder__adv-head-meta">Base</div>
+          <div class="npc-builder__adv-head-controls">Adjust</div>
+          <div class="npc-builder__adv-head-xp">XP</div>
+          <div class="npc-builder__adv-head-total">Total</div>
+        </div>
         <div v-for="entry in talentRows" :key="`talent-${entry.name}`" class="npc-builder__adv-row">
           <div class="npc-builder__adv-name">
             {{ entry.name }}
@@ -62,6 +77,7 @@
             </button>
           </div>
           <div class="npc-builder__adv-xp">XP {{ entry.xp }}</div>
+          <div class="npc-builder__adv-total">Total {{ entry.total }}</div>
         </div>
       </div>
     </div>
@@ -77,6 +93,13 @@
       </div>
 
       <div v-else class="npc-builder__adv-list">
+        <div class="npc-builder__adv-head" aria-hidden="true">
+          <div class="npc-builder__adv-head-name">Name</div>
+          <div class="npc-builder__adv-head-meta">Base</div>
+          <div class="npc-builder__adv-head-controls">Adjust</div>
+          <div class="npc-builder__adv-head-xp">XP</div>
+          <div class="npc-builder__adv-head-total">Total</div>
+        </div>
         <div v-for="entry in characteristicRows" :key="`characteristic-${entry.name}`" class="npc-builder__adv-row">
           <div class="npc-builder__adv-name">{{ entry.name }}</div>
           <div class="npc-builder__adv-meta">Base {{ entry.baseline }}</div>
@@ -95,6 +118,7 @@
             </button>
           </div>
           <div class="npc-builder__adv-xp">XP {{ entry.xp }}</div>
+          <div class="npc-builder__adv-total">Total {{ entry.total }}</div>
         </div>
       </div>
     </div>
@@ -263,7 +287,10 @@ const skillRows = computed(() => {
     .map(([name, value]) => ({
       name,
       baseline: value.baseline,
+      baseActorValue: value.baseActorValue,
+      baseActorTotal: value.baseActorTotal,
       current: value.current,
+      total: value.baseActorTotal + value.current,
       xp: getSkillXpCost(value.current),
       includedFromCareer: value.includedFromCareer,
       includedFromBase: value.includedFromBase,
@@ -276,7 +303,10 @@ const talentRows = computed(() => {
     .map(([name, value]) => ({
       name,
       baseline: value.baseline,
+      baseActorValue: value.baseActorValue,
+      baseActorTotal: value.baseActorTotal,
       current: value.current,
+      total: value.current,
       xp: getTalentXpCost(value.current),
       includedFromCareer: value.includedFromCareer,
       includedFromBase: value.includedFromBase,
@@ -291,7 +321,10 @@ const characteristicRows = computed(() => {
     .map(([name, value]) => ({
       name,
       baseline: value.baseline,
+      baseActorValue: value.baseActorValue,
+      baseActorTotal: value.baseActorTotal,
       current: value.current,
+      total: value.baseActorTotal + value.current,
       xp: getCharacteristicXpCost(value.current),
       includedFromCareer: value.includedFromCareer,
       includedFromBase: value.includedFromBase,
