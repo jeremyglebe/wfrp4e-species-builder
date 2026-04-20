@@ -134,9 +134,9 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
     getActorFolderByName,
+    getOrCreateQuickTraitsFolderWithOptionalSeed,
     getItemFolderByName,
     getOrCreateActorFolderByName,
-    getOrCreateItemFolderByName,
     normalizeFolderName,
 } from '../../../../module/services/settings/npcs';
 import { useNpcBuilderStore } from '../../../stores';
@@ -171,7 +171,12 @@ async function saveFolderSettings(): Promise<void> {
     }
 
     if (settings.value.quickTraitsFolderName) {
-        await getOrCreateItemFolderByName(settings.value.quickTraitsFolderName);
+        const quickTraitsResult = await getOrCreateQuickTraitsFolderWithOptionalSeed(
+            settings.value.quickTraitsFolderName,
+        );
+        if (quickTraitsResult.created && quickTraitsResult.importedCount > 0) {
+            ui.notifications?.info(`Imported ${quickTraitsResult.importedCount} common quick trait(s).`);
+        }
     }
 
     await store.refreshQuickTraitOptions();
@@ -184,7 +189,12 @@ async function saveQuickTraitsFolderSettings(): Promise<void> {
     await store.saveToStorage();
 
     if (settings.value.quickTraitsFolderName) {
-        await getOrCreateItemFolderByName(settings.value.quickTraitsFolderName);
+        const quickTraitsResult = await getOrCreateQuickTraitsFolderWithOptionalSeed(
+            settings.value.quickTraitsFolderName,
+        );
+        if (quickTraitsResult.created && quickTraitsResult.importedCount > 0) {
+            ui.notifications?.info(`Imported ${quickTraitsResult.importedCount} common quick trait(s).`);
+        }
     }
 
     await store.refreshQuickTraitOptions();

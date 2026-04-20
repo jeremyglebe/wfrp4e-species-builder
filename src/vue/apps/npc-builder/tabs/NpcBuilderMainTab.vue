@@ -147,10 +147,11 @@
           Source folder: {{ settings.quickTraitsFolderName || 'NPC Builder Quick Traits' }}
         </div>
 
-        <div class="npc-builder__alloc-actions">
+        <div class="npc-builder__alloc-actions"
+          style="display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; white-space: nowrap;">
           <span>Add</span>
           <input v-model.number="randomTraitCount" type="number" min="1" class="npc-builder__quantity-input"
-            style="width: 64px;" />
+            style="width: 42px; margin: 0 6px;" />
           <span>Random Traits</span>
           <button type="button" class="npc-builder__button npc-builder__button--small"
             :disabled="isBusy || quickTraitOptions.length === 0" @click="onRandomTraits">
