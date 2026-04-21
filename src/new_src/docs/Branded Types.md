@@ -45,7 +45,7 @@ export type Brand<T, B extends string> = T & { readonly __brand: B; readonly __b
 Two phantom properties are added:
 
 | Property | Purpose |
-|---|---|
+| --- | --- |
 | `__brand` | Holds the unique brand string, making the type nominally distinct. |
 | `__baseType` | Records the unwrapped base type `T` so helper utilities can reference it without extra generics. |
 
