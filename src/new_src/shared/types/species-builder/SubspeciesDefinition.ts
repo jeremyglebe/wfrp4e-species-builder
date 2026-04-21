@@ -1,4 +1,4 @@
-import type { Definition_SpeciesCharacteristics } from './wfrp4e/config/Definition_SpeciesCharacteristics';
+import type { Definition_SpeciesCharacteristics } from '../wfrp4e/config/Definition_SpeciesCharacteristics';
 
 export interface SubspeciesDefinition {
   name: string;
@@ -32,6 +32,6 @@ export interface SubspeciesDefinition {
   fate?: number;
   resilience?: number;
   extra?: number;
-  // talentReplacement?:
   careerTableKey?: string; // The subspecies can override the species' career table as well (which is usually keyed by the species id)
+  // talentReplacement?:
 }
