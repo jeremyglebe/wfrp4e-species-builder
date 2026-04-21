@@ -1,4 +1,4 @@
-import type { Brand, AssertBrandFunc, BrandClass, IsBrandFunc, MakeBrandFunc } from './Brand';
+import type { Brand, BrandClass, BrandFunc, BrandMethods } from './Brand';
 
 type __brand = 'DiceString';
 type DiceString = Brand<string, __brand>;
@@ -16,8 +16,8 @@ type DiceString = Brand<string, __brand>;
 // Dice formulas *must*, however, contain at least one dice term (e.g. "2d6") in order to be considered a valid dice formula.
 
 const DiceString: BrandClass<DiceString> = Object.assign<
-  MakeBrandFunc<DiceString>,
-  { assert: AssertBrandFunc<DiceString>; is: IsBrandFunc<DiceString> }
+  BrandFunc<DiceString>,
+  BrandMethods<DiceString>
 >(
   // making a DiceString from a string is as simple as asserting it matches the format, then returning it as a DiceString
   (value: string) => {

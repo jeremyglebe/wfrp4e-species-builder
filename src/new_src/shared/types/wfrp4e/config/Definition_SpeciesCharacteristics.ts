@@ -1,14 +1,14 @@
 import type { DiceString } from '../../utils/DiceString';
 
 export interface Definition_SpeciesCharacteristics {
-  ws: DiceString; // Weapon Skill
-  bs: DiceString; // Ballistic Skill
-  s: DiceString; // Strength
-  t: DiceString; // Toughness
-  i: DiceString; // Initiative
-  ag: DiceString; // Agility
-  dex: DiceString; // Dexterity
-  int: DiceString; // Intelligence
-  wp: DiceString; // Willpower
-  fel: DiceString; // Fellowship
+  readonly ws: DiceString; // Weapon Skill
+  readonly bs: DiceString; // Ballistic Skill
+  readonly s: DiceString; // Strength
+  readonly t: DiceString; // Toughness
+  readonly i: DiceString; // Initiative
+  readonly ag: DiceString; // Agility
+  readonly dex: DiceString; // Dexterity
+  readonly int: DiceString; // Intelligence
+  readonly wp: DiceString; // Willpower
+  readonly fel: DiceString; // Fellowship
 } // WFRP characteristic formulas keyed by system short codes.
