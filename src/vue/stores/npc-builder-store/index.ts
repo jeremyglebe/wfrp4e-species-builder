@@ -1,17 +1,17 @@
 ﻿import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../types/module';
-import { FactoryService } from '../../module/services/factory';
+import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../../types/module';
+import { FactoryService } from '../../../module/services/factory';
 import {
   getItemFolderByName,
   normalizeFolderName,
   saveNPCBuilderSettings,
-} from '../../module/services/settings/npc-builder';
+} from '../../../module/services/settings/npc-builder';
 import {
   getCharacteristicXpCost,
   getSkillXpCost,
   getTalentXpCost,
-} from '../apps/npc-builder/xp-cost';
+} from '../../apps/npc-builder/xp-cost';
 import {
   allocateXp,
   type AllocatableEntry,
@@ -19,150 +19,24 @@ import {
   MAX_CHARACTERISTIC_ADVANCES,
   MAX_SKILL_ADVANCES,
   MAX_TALENT_RANKS,
-} from '../apps/npc-builder/xp-allocation';
+} from '../../apps/npc-builder/xp-allocation';
+import type { AdvancementValue } from './types/AdvancementValue';
 
-/**
- * Tracks advancement sources and values for a single skill, talent, or characteristic.
- *
- * The model distinguishes between:
- * - baseline: value derived from queued careers only
- * - current: user-edited advancement value
- * - includedFromCareer: whether this entry is granted by at least one queued career
- * - includedFromBase: whether this entry exists on the selected base actor
- * - effectiveRankForCost: (talents only) the effective rank before user edits, used for XP cost calculation
- * - editable: whether the user can modify the current value in the UI
- */
-export interface AdvancementValue {
-  /** Total baseline advances/ranks from all queued careers */
-  baseline: number;
-  /** Starting value contributed by the selected base actor */
-  baseActorValue: number;
-  /** Base actor displayed total value used for preview totals in the UI */
-  baseActorTotal: number;
-  /** User-edited current advances/ranks */
-  current: number;
-  /** True if at least one queued career grants this skill/talent/characteristic */
-  includedFromCareer: boolean;
-  /** True if the base actor already has this skill/talent/characteristic */
-  includedFromBase: boolean;
-  /** (talents only) The effective rank from all sources (career + base) before user edits, used for cost calculation */
-  effectiveRankForCost: number;
-  /** Whether this entry is editable by the user in the UI */
-  editable: boolean;
-  /** Source breakdown used for explanatory UI, primarily for talents. */
-  sources: AdvancementSourceCount[];
-  /** Career-only source breakdown for displaying which queued careers grant this entry. */
-  careerSources: AdvancementSourceCount[];
-}
+export type { AdvancementSourceCount } from './types/AdvancementSourceCount';
+export type { NpcBuilderTrappingEntry } from './types/NpcBuilderTrappingEntry';
+export type { NpcBuilderTraitEntry } from './types/NpcBuilderTraitEntry';
+export type { QuickTraitOption } from './types/QuickTraitOption';
+export type { CareerAdvancementBaseline } from './types/CareerAdvancementBaseline';
+export type { BaseActorAdvancementSnapshot } from './types/BaseActorAdvancementSnapshot';
+export type { AllocationTargetKind } from './types/AllocationTargetKind';
 
-export interface AdvancementSourceCount {
-  label: string;
-  count: number;
-}
-
-export interface NpcBuilderTrappingEntry {
-  key: string;
-  name: string;
-  originalName: string;
-  quantity: number;
-  itemType: string;
-  sourceKind: 'career' | 'base' | 'user';
-  includedFromCareer: boolean;
-  includedFromBase: boolean;
-  includedFromUser: boolean;
-  editable: boolean;
-  ignoredFromCareer: boolean;
-  ignored: boolean;
-  sourceSummary: string;
-  careerSources: AdvancementSourceCount[];
-  documentUuid: string | null;
-  sourceData: Record<string, unknown> | null;
-  xp: number;
-  /**
-   * Whether this entry was resolved to a real compendium/world item.
-   * null  = resolution not applicable (base/user entries)
-   * true  = item found in compendium or world
-   * false = item not found; build will create a blank item unless ignored
-   */
-  resolved: boolean | null;
-}
-
-export interface NpcBuilderTraitEntry {
-  key: string;
-  name: string;
-  originalName: string;
-  quantity: number;
-  itemType: 'trait';
-  sourceKind: 'career' | 'base' | 'user';
-  includedFromCareer: boolean;
-  includedFromBase: boolean;
-  includedFromUser: boolean;
-  editable: boolean;
-  ignoredFromCareer: boolean;
-  ignored: boolean;
-  sourceSummary: string;
-  careerSources: AdvancementSourceCount[];
-  documentUuid: string | null;
-  sourceData: Record<string, unknown> | null;
-  /** Trait XP is currently optional and defaults to 0 for all entries. */
-  xp: number;
-}
-
-export interface QuickTraitOption {
-  key: string;
-  name: string;
-  uuid: string;
-  img: string;
-  sourceData: Record<string, unknown> | null;
-}
-
-/**
- * Career-derived advancement baseline snapshot.
- * Built directly from queued careers, before base actor inclusion.
- */
-export interface CareerAdvancementBaseline {
-  /** Career-derived skill advances: keyed by skill name, value is total +5 per matching career */
-  skills: Record<string, number>;
-  /** Career-derived talent ranks: keyed by talent name, value is total +1 per matching career */
-  talents: Record<string, number>;
-  /** Career-derived characteristic advances: keyed by characteristic name, value is +5 per career that grants it */
-  characteristics: Record<string, number>;
-  /** Career-derived skill source counts used for UI explanations. */
-  skillSources: Record<string, AdvancementSourceCount[]>;
-  /** Career-derived talent source counts used for UI explanations. */
-  talentSources: Record<string, AdvancementSourceCount[]>;
-  /** Career-derived characteristic source counts used for UI explanations. */
-  characteristicSources: Record<string, AdvancementSourceCount[]>;
-  /** Career-derived trappings by display name. */
-  trappings: Record<string, number>;
-  /** Career-derived trapping source counts used for UI explanations. */
-  trappingSources: Record<string, AdvancementSourceCount[]>;
-  /** Career-derived traits by display name. */
-  traits: Record<string, number>;
-  /** Career-derived trait source counts used for UI explanations. */
-  traitSources: Record<string, AdvancementSourceCount[]>;
-}
-
-/**
- * Optional base actor advancement snapshot.
- * Captured from the selected base actor for optional inclusion.
- */
-export interface BaseActorAdvancementSnapshot {
-  /** Base actor display name for source breakdown text */
-  actorName: string;
-  /** Base actor skill advances: keyed by skill name */
-  skills: Record<string, number>;
-  /** Base actor skill totals: keyed by skill name */
-  skillTotals: Record<string, number>;
-  /** Base actor talent ranks: keyed by talent name */
-  talents: Record<string, number>;
-  /** Base actor characteristic advances: keyed by characteristic name */
-  characteristics: Record<string, number>;
-  /** Base actor characteristic totals: keyed by characteristic name */
-  characteristicTotals: Record<string, number>;
-}
-
-export type AllocationTargetKind = 'total' | 'delta';
+import type { AdvancementSourceCount } from './types/AdvancementSourceCount';
+import type { NpcBuilderTrappingEntry } from './types/NpcBuilderTrappingEntry';
+import type { NpcBuilderTraitEntry } from './types/NpcBuilderTraitEntry';
+import type { QuickTraitOption } from './types/QuickTraitOption';
+import type { CareerAdvancementBaseline } from './types/CareerAdvancementBaseline';
+import type { BaseActorAdvancementSnapshot } from './types/BaseActorAdvancementSnapshot';
+import type { AllocationTargetKind } from './types/AllocationTargetKind';
 
 /**
  * NPC Builder Pinia store.
