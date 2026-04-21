@@ -1,4 +1,4 @@
-import type { Brand, BrandClass, BrandFunc, BrandMethods } from './Brand';
+import type { Brand, BrandClass, BrandFunc, BrandMethods } from '../Brand';
 
 type __brand = 'DiceString';
 type DiceString = Brand<string, __brand>;

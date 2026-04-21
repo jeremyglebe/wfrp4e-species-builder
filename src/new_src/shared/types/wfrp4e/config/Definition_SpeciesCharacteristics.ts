@@ -1,4 +1,4 @@
-import type { DiceString } from '../../utils/DiceString';
+import type { DiceString } from '../../strings/DiceString';
 
 export interface Definition_SpeciesCharacteristics {
   readonly ws: DiceString; // Weapon Skill

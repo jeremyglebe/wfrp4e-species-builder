@@ -1,4 +1,4 @@
-import type { DiceString } from '../utils/DiceString';
+import type { DiceString } from '../strings/DiceString';
 import type { Definition_SpeciesCharacteristics } from '../wfrp4e/config/Definition_SpeciesCharacteristics';
 import type { RandomTalentsEntry } from './RandomTalentsDefinition';
 import type { SubspeciesDefinition } from './SubspeciesDefinition';
