@@ -6,17 +6,22 @@
  ┣ 📂.vscode
  ┃ ┗ 📜extensions.json
  ┃
- ┣ 📂public
- ┃ ┗ 📜favicon.ico
+ ┣ 📂docs
+ ┃ ┣ 📜Feature Planning.md
+ ┃ ┗ 📜Releases.md
  ┃
  ┣ 📂scripts
+ ┃ ┣ 📜create-release.mjs
  ┃ ┗ 📜generate-tree.mjs
  ┃
  ┣ 📂src
  ┃ ┣ 📂module
  ┃ ┃ ┣ 📂apps
+ ┃ ┃ ┃ ┣ 📜AggregateItemBuilderApplication.ts
+ ┃ ┃ ┃ ┣ 📜EffectToItemBuilderApplication.ts
  ┃ ┃ ┃ ┣ 📜FoundryVueApplication.ts
  ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┣ 📜NPCBuilderApplication.ts
  ┃ ┃ ┃ ┗ 📜SpeciesBuilderApplication.ts
  ┃ ┃ ┃
  ┃ ┃ ┣ 📂hooks
@@ -25,35 +30,168 @@
  ┃ ┃ ┃ ┗ 📜init.ts
  ┃ ┃ ┃
  ┃ ┃ ┣ 📂services
- ┃ ┃ ┃ ┣ 📜data-service.ts
- ┃ ┃ ┃ ┣ 📜index.ts
- ┃ ┃ ┃ ┣ 📜injection-service.ts
- ┃ ┃ ┃ ┗ 📜settings-service.ts
+ ┃ ┃ ┃ ┣ 📂cache
+ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂career
+ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂factory
+ ┃ ┃ ┃ ┃ ┣ 📂default
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜AggregateItemBuilderSettings.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSpeciesDefinition.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSpeciesSettingsData.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSubspeciesDefinition.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜EffectItemsSettingsConfig.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜NPCBuilderSettings.ts
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜SpeciesCharacteristics.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┣ 📂empty
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSpeciesDefinition.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSpeciesSettingsData.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSubspeciesDefinition.ts
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜SpeciesCharacteristics.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┣ 📂sample
+ ┃ ┃ ┃ ┃ ┃ ┣ 📜CustomSpeciesDefinition.ts
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂injection
+ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂settings
+ ┃ ┃ ┃ ┃ ┣ 📂aggregate-items
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┣ 📂effect-items
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┣ 📂npc-builder
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┣ 📂species-builder
+ ┃ ┃ ┃ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┃ ┗ 📜register.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┗ 📜index.ts
  ┃ ┃ ┃
- ┃ ┃ ┣ 📂types
+ ┃ ┃ ┗ 📜index.ts
+ ┃ ┃
+ ┃ ┣ 📂types
+ ┃ ┃ ┣ 📂module
  ┃ ┃ ┃ ┣ 📜CustomSpeciesDefinition.ts
  ┃ ┃ ┃ ┣ 📜CustomSpeciesSettingsData.ts
  ┃ ┃ ┃ ┣ 📜CustomSubspeciesDefinition.ts
  ┃ ┃ ┃ ┣ 📜index.ts
+ ┃ ┃ ┃ ┣ 📜ItemBuilderTypes.ts
+ ┃ ┃ ┃ ┣ 📜NPCBuilderTypes.ts
  ┃ ┃ ┃ ┣ 📜SpeciesCharacteristics.ts
- ┃ ┃ ┃ ┣ 📜SpeciesHeight.ts
- ┃ ┃ ┃ ┣ 📜WfrpSpeciesConfigFragment.ts
- ┃ ┃ ┃ ┗ 📜WfrpSubspeciesConfig.ts
+ ┃ ┃ ┃ ┗ 📜SpeciesHeight.ts
  ┃ ┃ ┃
- ┃ ┃ ┗ 📜index.ts
+ ┃ ┃ ┣ 📂wfrp4e
+ ┃ ┃ ┃ ┣ 📂apps
+ ┃ ┃ ┃ ┃ ┣ 📜index.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜public.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂core
+ ┃ ┃ ┃ ┃ ┣ 📜base.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜index.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂documents
+ ┃ ┃ ┃ ┃ ┣ 📜index.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜public.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂foundry
+ ┃ ┃ ┃ ┃ ┣ 📜augmentations.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜index.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂game
+ ┃ ┃ ┃ ┃ ┣ 📜api.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜index.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂hooks
+ ┃ ┃ ┃ ┃ ┣ 📜index.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜public.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂rolls
+ ┃ ┃ ┃ ┃ ┣ 📜index.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜public.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┣ 📂system
+ ┃ ┃ ┃ ┃ ┣ 📜config.d.ts
+ ┃ ┃ ┃ ┃ ┣ 📜index.d.ts
+ ┃ ┃ ┃ ┃ ┣ 📜tables.d.ts
+ ┃ ┃ ┃ ┃ ┗ 📜utility.d.ts
+ ┃ ┃ ┃ ┃
+ ┃ ┃ ┃ ┗ 📜index.d.ts
+ ┃ ┃ ┃
+ ┃ ┃ ┣ 📜styles.d.ts
+ ┃ ┃ ┣ 📜vue.d.ts
+ ┃ ┃ ┗ 📜wfrp4e.d.ts
  ┃ ┃
- ┃ ┣ 📂vue
- ┃ ┃ ┗ 📂apps
- ┃ ┃    ┗ 📜SpeciesBuilderApp.vue
- ┃ ┃
- ┃ ┗ 📜vue.d.ts
+ ┃ ┗ 📂vue
+ ┃    ┣ 📂apps
+ ┃    ┃ ┣ 📂npc-builder
+ ┃    ┃ ┃ ┣ 📂tabs
+ ┃    ┃ ┃ ┃ ┣ 📜NpcBuilderMainTab.vue
+ ┃    ┃ ┃ ┃ ┣ 📜NpcBuilderSettingsTab.vue
+ ┃    ┃ ┃ ┃ ┣ 📜NpcBuilderSkillsTalentsTab.vue
+ ┃    ┃ ┃ ┃ ┣ 📜NpcBuilderTraitsTab.vue
+ ┃    ┃ ┃ ┃ ┗ 📜NpcBuilderTrappingsTab.vue
+ ┃    ┃ ┃ ┃
+ ┃    ┃ ┃ ┣ 📜naming.ts
+ ┃    ┃ ┃ ┣ 📜NpcBuilderApp.vue
+ ┃    ┃ ┃ ┣ 📜xp-allocation.ts
+ ┃    ┃ ┃ ┗ 📜xp-cost.ts
+ ┃    ┃ ┃
+ ┃    ┃ ┣ 📂species-builder
+ ┃    ┃ ┃ ┣ 📂subviews
+ ┃    ┃ ┃ ┃ ┗ 📜SubspeciesBuilder.vue
+ ┃    ┃ ┃ ┃
+ ┃    ┃ ┃ ┗ 📜SpeciesBuilderApp.vue
+ ┃    ┃ ┃
+ ┃    ┃ ┣ 📜AggregateItemBuilderApp.vue
+ ┃    ┃ ┗ 📜EffectToItemBuilderApp.vue
+ ┃    ┃
+ ┃    ┣ 📂components
+ ┃    ┃ ┣ 📜DocumentDrop.vue
+ ┃    ┃ ┣ 📜Modal.vue
+ ┃    ┃ ┗ 📜SubView.vue
+ ┃    ┃
+ ┃    ┣ 📂stores
+ ┃    ┃ ┣ 📂npc-builder-store
+ ┃    ┃ ┃ ┣ 📂types
+ ┃    ┃ ┃ ┃ ┣ 📜AdvancementSourceCount.ts
+ ┃    ┃ ┃ ┃ ┣ 📜AdvancementValue.ts
+ ┃    ┃ ┃ ┃ ┣ 📜AllocationTargetKind.ts
+ ┃    ┃ ┃ ┃ ┣ 📜BaseActorAdvancementSnapshot.ts
+ ┃    ┃ ┃ ┃ ┣ 📜CareerAdvancementBaseline.ts
+ ┃    ┃ ┃ ┃ ┣ 📜NpcBuilderTraitEntry.ts
+ ┃    ┃ ┃ ┃ ┣ 📜NpcBuilderTrappingEntry.ts
+ ┃    ┃ ┃ ┃ ┗ 📜QuickTraitOption.ts
+ ┃    ┃ ┃ ┃
+ ┃    ┃ ┃ ┗ 📜index.ts
+ ┃    ┃ ┃
+ ┃    ┃ ┣ 📜index.ts
+ ┃    ┃ ┗ 📜species-builder-store.ts
+ ┃    ┃
+ ┃    ┣ 📂styles
+ ┃    ┃ ┗ 📜shared.css
+ ┃    ┃
+ ┃    ┗ 📜pinia.ts
  ┃
  ┣ 📂static
  ┃ ┗ 📂lang
  ┃    ┗ 📜en.json
  ┃
  ┣ 📂styles
- ┃ ┗ 📜module.css
+ ┃ ┗ 📜global.css
  ┃
  ┣ 📜.editorconfig
  ┣ 📜.gitattributes
@@ -62,10 +200,11 @@
  ┣ 📜.prettierrc.json
  ┣ 📜env.d.ts
  ┣ 📜eslint.config.ts
- ┣ 📜module.json
+ ┣ 📜module.jsonc
  ┣ 📜package-lock.json
  ┣ 📜package.json
  ┣ 📜README.md
+ ┣ 📜tree
  ┣ 📜tsconfig.app.json
  ┣ 📜tsconfig.json
  ┣ 📜tsconfig.node.json
