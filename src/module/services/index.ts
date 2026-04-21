@@ -3,4 +3,4 @@
  */
 export { FactoryService } from './factory';
 export { MODULE_NAMESPACE as MODULE_ID, SettingsService } from './settings';
-export { InjectionService } from './injection-service';
+export { InjectionService } from './injection';

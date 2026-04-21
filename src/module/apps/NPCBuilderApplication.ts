@@ -1,8 +1,10 @@
+import type { DeepPartial } from 'fvtt-types/utils';
 import NpcBuilderApp from '../../vue/apps/npc-builder/NpcBuilderApp.vue';
 import { pinia } from '../../vue/pinia';
 import { useNpcBuilderStore } from '../../vue/stores';
-import { loadNPCBuilderSettings } from '../services/settings/npcs';
+import { loadNPCBuilderSettings } from '../services/settings/npc-builder';
 import { FoundryVueApplication } from './FoundryVueApplication';
+type ApplicationConfiguration = foundry.applications.types.ApplicationConfiguration;
 
 /**
  * NPC Builder window implementation.
@@ -16,7 +18,7 @@ import { FoundryVueApplication } from './FoundryVueApplication';
 export class NPCBuilderApplication extends FoundryVueApplication {
   protected readonly vueRootId = 'wfrp4e-npc-builder-root';
 
-  static override DEFAULT_OPTIONS = {
+  static override DEFAULT_OPTIONS: DeepPartial<ApplicationConfiguration> = {
     id: 'wfrp4e-npc-builder-app',
     tag: 'section',
     window: {
@@ -24,8 +26,8 @@ export class NPCBuilderApplication extends FoundryVueApplication {
       resizable: true,
     },
     position: {
-      width: 820,
-      height: 700,
+      width: 1000,
+      height: 680,
     },
   };
 

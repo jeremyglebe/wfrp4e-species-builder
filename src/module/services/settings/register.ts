@@ -10,8 +10,8 @@ import type {
 
 // Settings keys for each of the builders, used to register
 // their settings under the module's namespace.
-import { SETTINGS_KEY as SPECIES_BUILDER_KEY } from './species';
-import { SETTINGS_KEY as NPC_BUILDER_KEY } from './npcs';
+import { SETTINGS_KEY as SPECIES_BUILDER_KEY } from './species-builder';
+import { SETTINGS_KEY as NPC_BUILDER_KEY } from './npc-builder';
 import { SETTINGS_KEY as AGGREGATE_ITEMS_KEY } from './aggregate-items';
 import { SETTINGS_KEY as EFFECT_ITEMS_KEY } from './effect-items';
 
@@ -39,7 +39,7 @@ export function register(): void {
     hint: 'Internal storage for WFRP4e Species Builder custom species.',
     scope: 'world',
     config: false,
-    default: FactoryService.Empty.CustomSpeciesSettingsData(),
+    default: FactoryService.Default.CustomSpeciesSettingsData(),
   });
 
   game?.settings?.register(MODULE_NAMESPACE, NPC_BUILDER_KEY, {

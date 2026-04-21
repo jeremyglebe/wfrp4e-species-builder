@@ -84,8 +84,8 @@ import { x8 } from '@upscalerjs/esrgan-thick';
 import {
   getOrCreateActorFolderByName,
   normalizeFolderName,
-} from '../../../module/services/settings/npcs';
-import { buildFinalName } from '../../../module/services/npc-builder-naming';
+} from '../../../module/services/settings/npc-builder';
+import { buildFinalName } from './naming';
 import { useNpcBuilderStore } from '../../stores';
 import type { NpcBuilderTrappingEntry } from '../../stores/npc-builder-store';
 import NpcBuilderMainTab from './tabs/NpcBuilderMainTab.vue';

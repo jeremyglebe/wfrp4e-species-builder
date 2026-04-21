@@ -138,7 +138,7 @@ import {
     getItemFolderByName,
     getOrCreateActorFolderByName,
     normalizeFolderName,
-} from '../../../../module/services/settings/npcs';
+} from '../../../../module/services/settings/npc-builder';
 import { useNpcBuilderStore } from '../../../stores';
 
 /**

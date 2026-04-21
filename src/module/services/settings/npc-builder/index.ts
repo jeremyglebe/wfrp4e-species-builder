@@ -1,6 +1,6 @@
-import type { NPCBuilderSettings } from '../../../types/module';
-import { MODULE_NAMESPACE } from '.';
-import { FactoryService } from '../factory';
+import type { NPCBuilderSettings } from '../../../../types/module';
+import { MODULE_NAMESPACE } from '..';
+import { FactoryService } from '../../factory';
 
 export const SETTINGS_KEY = 'npcBuilderSettings';
 

@@ -1,4 +1,4 @@
-import type { CareerEntry, IndexedCareer } from '../../types/module';
+import type { CareerEntry, IndexedCareer } from '../../../types/module';
 
 /**
  * Provides methods to extract career metadata from item objects.

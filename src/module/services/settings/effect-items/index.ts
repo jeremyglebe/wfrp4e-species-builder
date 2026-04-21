@@ -1,7 +1,7 @@
-import type { EffectItemsSettingsConfig } from '../../../types/module';
-import { getAllowedCarrierTypes } from './aggregate-items';
-import { MODULE_NAMESPACE } from '.';
-import { FactoryService } from '../factory';
+import type { EffectItemsSettingsConfig } from '../../../../types/module';
+import { getAllowedCarrierTypes } from '../aggregate-items';
+import { MODULE_NAMESPACE } from '..';
+import { FactoryService } from '../../factory';
 
 export const SETTINGS_KEY = 'effectToItemBuilderSettings';
 

@@ -1,6 +1,6 @@
-import { MODULE_NAMESPACE } from '.';
-import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../../../types/module';
-import { FactoryService } from '../factory';
+import { MODULE_NAMESPACE } from '..';
+import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../../../../types/module';
+import { FactoryService } from '../../factory';
 
 /**
  * Foundry settings boundary for module storage.

@@ -6,7 +6,7 @@ import {
   getItemFolderByName,
   normalizeFolderName,
   saveNPCBuilderSettings,
-} from '../../module/services/settings/npcs';
+} from '../../module/services/settings/npc-builder';
 import {
   getCharacteristicXpCost,
   getSkillXpCost,

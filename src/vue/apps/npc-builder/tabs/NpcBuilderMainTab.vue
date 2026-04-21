@@ -190,9 +190,9 @@
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import type { BaseActorOption, CareerEntry } from '../../../../types/module';
-import { getActorFolderByName } from '../../../../module/services/settings/npcs';
-import { getSpeciesName } from '../../../../module/services/npc-builder-naming';
-import { CareerIndexService } from '../../../../module/services/career-index-service';
+import { getActorFolderByName } from '../../../../module/services/settings/npc-builder';
+import { getSpeciesName } from '../naming';
+import { CareerIndexService } from '../../../../module/services/career';
 import { useNpcBuilderStore } from '../../../stores';
 
 /**
