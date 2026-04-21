@@ -64,37 +64,31 @@ The local `__brand` alias is a useful convention: it keeps the brand string from
 
 ## Helper Function Types
 
-`Brand.ts` also exports three helper function types that describe common operations for a branded type:
+`Brand.ts` exports two helper types that describe the callable shape of a branded type object:
 
-### `MakeBrandFunc`
+### `BrandFunc`
 
 ```ts
-export type MakeBrandFunc<BrandType extends Brand<unknown, string>> = (
+export type BrandFunc<BrandType extends Brand<unknown, string>> = (
   value: BrandType['__baseType'],
 ) => BrandType;
 ```
 
-A function that takes a raw base value, validates it (typically by throwing on failure), and returns it as the branded type. The `['__baseType']` lookup is why `__baseType` exists on the `Brand` definition — it lets the generic resolve the unwrapped type automatically.
+The make-function signature. Takes a raw base value, validates it (typically by throwing on failure), and returns it as the branded type. The `['__baseType']` lookup is why `__baseType` exists on the `Brand` definition — it lets the generic resolve the unwrapped type without an extra type parameter.
 
-### `AssertBrandFunc`
-
-```ts
-export type AssertBrandFunc<BrandType extends Brand<unknown, string>> = (
-  value: unknown,
-) => asserts value is BrandType;
-```
-
-A TypeScript *assertion function*. If the value fails validation it throws; otherwise TypeScript narrows the value's type in the surrounding scope.
-
-### `IsBrandFunc`
+### `BrandMethods`
 
 ```ts
-export type IsBrandFunc<BrandType extends Brand<unknown, string>> = (
-  value: unknown,
-) => value is BrandType;
+export type BrandMethods<BrandType extends Brand<unknown, string>> = {
+  readonly assert: (value: unknown) => asserts value is BrandType;
+  readonly is: (value: unknown) => value is BrandType;
+};
 ```
 
-A TypeScript *type guard*. Returns `true`/`false` and narrows the type inside conditional branches.
+The static methods attached to the function object:
+
+- **`assert`** — a TypeScript *assertion function*. Throws if validation fails; otherwise TypeScript narrows the value's type in the surrounding scope.
+- **`is`** — a TypeScript *type guard*. Returns `true`/`false` and narrows the type inside conditional branches.
 
 ---
 
@@ -103,10 +97,8 @@ A TypeScript *type guard*. Returns `true`/`false` and narrows the type inside co
 Standard branded type patterns usually provide only the bare type plus a few standalone functions. This codebase extends that pattern with the `BrandClass` type:
 
 ```ts
-export type BrandClass<BrandType extends Brand<unknown, string>> = MakeBrandFunc<BrandType> & {
-  assert: AssertBrandFunc<BrandType>;
-  is: IsBrandFunc<BrandType>;
-};
+export type BrandClass<BrandType extends Brand<unknown, string>> = BrandFunc<BrandType> &
+  BrandMethods<BrandType>;
 ```
 
 A `BrandClass` is a **callable function** (the make function) that also carries `.assert()` and `.is()` as static methods — merged directly onto the function object via `Object.assign`. This gives each branded type a single named export that behaves like a class:
@@ -121,8 +113,8 @@ The concrete pattern looks like this (from [DiceString.ts](../shared/types/utils
 
 ```ts
 const DiceString: BrandClass<DiceString> = Object.assign<
-  MakeBrandFunc<DiceString>,
-  { assert: AssertBrandFunc<DiceString>; is: IsBrandFunc<DiceString> }
+  BrandFunc<DiceString>,
+  BrandMethods<DiceString>
 >(
   (value: string) => {
     DiceString.assert(value);
@@ -187,7 +179,7 @@ This is structurally different from the local version (which uses a plain readon
 > **Warning:** Project code should import `Brand` (and related helpers) explicitly from the local path:
 >
 > ```ts
-> import type { Brand, BrandClass } from '@/new_src/shared/types/utils/Brand';
+> import type { Brand, BrandFunc, BrandMethods, BrandClass } from '@/new_src/shared/types/utils/Brand';
 > ```
 >
 > Project code should not rely on ambient or auto-imported `Brand` from `fvtt-types` unless explicitly interacting with Foundry types.
