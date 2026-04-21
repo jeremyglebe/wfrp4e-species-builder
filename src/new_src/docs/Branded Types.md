@@ -2,7 +2,7 @@
 
 ## What Are Branded Types?
 
-TypeScript's type system is *structural* — two types are considered compatible if they share the same shape. This means that two types which are structurally identical are, from TypeScript's perspective, interchangeable:
+TypeScript's type system is _structural_ — two types are considered compatible if they share the same shape. This means that two types which are structurally identical are, from TypeScript's perspective, interchangeable:
 
 ```ts
 type Meters = number;
@@ -16,7 +16,7 @@ const time: Seconds = 30;
 travel(time, dist); // No error! TypeScript is fine with this.
 ```
 
-A **branded type** (also called a *nominal type* or *opaque type*) solves this by attaching a unique phantom property to a base type. The property exists only in the type system — it has no runtime value — but it makes the type structurally distinct from all other types, even those with the same base:
+A **branded type** (also called a _nominal type_ or _opaque type_) solves this by attaching a unique phantom property to a base type. The property exists only in the type system — it has no runtime value — but it makes the type structurally distinct from all other types, even those with the same base:
 
 ```ts
 type Meters = number & { readonly __brand: 'Meters' };
@@ -44,9 +44,9 @@ export type Brand<T, B extends string> = T & { readonly __brand: B; readonly __b
 
 Two phantom properties are added:
 
-| Property | Purpose |
-| --- | --- |
-| `__brand` | Holds the unique brand string, making the type nominally distinct. |
+| Property     | Purpose                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `__brand`    | Holds the unique brand string, making the type nominally distinct.                               |
 | `__baseType` | Records the unwrapped base type `T` so helper utilities can reference it without extra generics. |
 
 ### Defining a Branded Type
@@ -87,8 +87,8 @@ export type BrandMethods<BrandType extends Brand<unknown, string>> = {
 
 The static methods attached to the function object:
 
-- **`assert`** — a TypeScript *assertion function*. Throws if validation fails; otherwise TypeScript narrows the value's type in the surrounding scope.
-- **`is`** — a TypeScript *type guard*. Returns `true`/`false` and narrows the type inside conditional branches.
+- **`assert`** — a TypeScript _assertion function_. Throws if validation fails; otherwise TypeScript narrows the value's type in the surrounding scope.
+- **`is`** — a TypeScript _type guard_. Returns `true`/`false` and narrows the type inside conditional branches.
 
 ---
 
@@ -103,11 +103,11 @@ export type BrandClass<BrandType extends Brand<unknown, string>> = BrandFunc<Bra
 
 A `BrandClass` is a **callable function** (the make function) that also carries `.assert()` and `.is()` as static methods — merged directly onto the function object via `Object.assign`. This gives each branded type a single named export that behaves like a class:
 
-| Usage | What it does |
-|---|---|
-| `DiceString(value)` | Validates and returns the value as a `DiceString`, throwing on failure. |
-| `DiceString.is(value)` | Returns `true` if valid; narrows type inside `if` blocks. |
-| `DiceString.assert(value)` | Throws if invalid; narrows type after the call. |
+| Usage                      | What it does                                                            |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `DiceString(value)`        | Validates and returns the value as a `DiceString`, throwing on failure. |
+| `DiceString.is(value)`     | Returns `true` if valid; narrows type inside `if` blocks.               |
+| `DiceString.assert(value)` | Throws if invalid; narrows type after the call.                         |
 
 The concrete pattern looks like this (from [DiceString.ts](../shared/types/utils/DiceString.ts)):
 
@@ -179,7 +179,12 @@ This is structurally different from the local version (which uses a plain readon
 > **Warning:** Project code should import `Brand` (and related helpers) explicitly from the local path:
 >
 > ```ts
-> import type { Brand, BrandFunc, BrandMethods, BrandClass } from '@/new_src/shared/types/utils/Brand';
+> import type {
+>   Brand,
+>   BrandFunc,
+>   BrandMethods,
+>   BrandClass,
+> } from '@/new_src/shared/types/utils/Brand';
 > ```
 >
 > Project code should not rely on ambient or auto-imported `Brand` from `fvtt-types` unless explicitly interacting with Foundry types.
