@@ -1,4 +1,4 @@
-import type { SpeciesCharacteristics } from '@/types/module';
+import type { SpeciesCharacteristics } from '@/shared/types/module';
 
 export default function (): SpeciesCharacteristics {
   return {

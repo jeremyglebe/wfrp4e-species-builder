@@ -1,4 +1,4 @@
-import type { NPCBuilderSettings } from '@/types/module';
+import type { NPCBuilderSettings } from '@/shared/types/module';
 
 export default function (): NPCBuilderSettings {
   return {

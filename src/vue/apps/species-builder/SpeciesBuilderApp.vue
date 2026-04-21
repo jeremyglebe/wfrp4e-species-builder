@@ -8,14 +8,24 @@
             <h2>Species</h2>
           </div>
 
-          <button type="button" class="species-builder__button species-builder__button--primary" @click="addSpecies">
+          <button
+            type="button"
+            class="species-builder__button species-builder__button--primary"
+            @click="addSpecies"
+          >
             Add Species
           </button>
         </div>
 
         <div class="species-builder__species-list">
-          <button v-for="species in speciesList" :key="species.id" type="button" class="species-builder__species-item"
-            :class="{ 'is-selected': selectedSpeciesId === species.id }" @click="selectSpecies(species.id)">
+          <button
+            v-for="species in speciesList"
+            :key="species.id"
+            type="button"
+            class="species-builder__species-item"
+            :class="{ 'is-selected': selectedSpeciesId === species.id }"
+            @click="selectSpecies(species.id)"
+          >
             <div class="species-builder__species-topline">
               <strong>{{ species.name || 'Unnamed Species' }}</strong>
               <span class="species-builder__species-id">{{ species.id || 'missing-id' }}</span>
@@ -42,12 +52,20 @@
             </div>
 
             <div class="species-builder__editor-actions">
-              <button type="button" class="species-builder__button species-builder__button--ghost" :disabled="isSaving"
-                @click="deleteSelectedSpecies">
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--ghost"
+                :disabled="isSaving"
+                @click="deleteSelectedSpecies"
+              >
                 Delete
               </button>
-              <button type="button" class="species-builder__button species-builder__button--primary"
-                :disabled="isSaving || !canSave" @click="save">
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--primary"
+                :disabled="isSaving || !canSave"
+                @click="save"
+              >
                 Save
               </button>
             </div>
@@ -117,23 +135,35 @@
           <div class="species-builder__split-sections">
             <section class="species-builder__section species-builder__card">
               <h3>Skills</h3>
-              <DocumentDrop label="Drop skill items here" :accepted-drag-types="['Item']" :resolve-document="true"
-                @drop-document="handleSpeciesDocumentDrop('skills', $event)" />
+              <DocumentDrop
+                label="Drop skill items here"
+                :accepted-drag-types="['Item']"
+                :resolve-document="true"
+                @drop-document="handleSpeciesDocumentDrop('skills', $event)"
+              />
               <textarea v-model="skillsText" rows="7" placeholder="One skill per line" />
             </section>
 
             <section class="species-builder__section species-builder__card">
               <h3>Talents</h3>
-              <DocumentDrop label="Drop talent items here" :accepted-drag-types="['Item']" :resolve-document="true"
-                @drop-document="handleSpeciesDocumentDrop('talents', $event)" />
+              <DocumentDrop
+                label="Drop talent items here"
+                :accepted-drag-types="['Item']"
+                :resolve-document="true"
+                @drop-document="handleSpeciesDocumentDrop('talents', $event)"
+              />
               <textarea v-model="talentsText" rows="7" placeholder="One talent per line" />
             </section>
           </div>
 
           <section class="species-builder__section species-builder__card">
             <h3>Traits</h3>
-            <DocumentDrop label="Drop trait items here" :accepted-drag-types="['Item']" :resolve-document="true"
-              @drop-document="handleSpeciesDocumentDrop('traits', $event)" />
+            <DocumentDrop
+              label="Drop trait items here"
+              :accepted-drag-types="['Item']"
+              :resolve-document="true"
+              @drop-document="handleSpeciesDocumentDrop('traits', $event)"
+            />
             <textarea v-model="traitsText" rows="5" placeholder="One trait per line" />
           </section>
 
@@ -144,48 +174,75 @@
                 <h3>Subspecies</h3>
               </div>
 
-              <button type="button" class="species-builder__button species-builder__button--primary"
-                @click="addSubspecies">
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--primary"
+                @click="addSubspecies"
+              >
                 Add Subspecies
               </button>
             </div>
 
-            <div v-if="selectedSpeciesSubspecies.length > 0" class="species-builder__subspecies-list">
-              <button v-for="subspecies in selectedSpeciesSubspecies" :key="subspecies.id" type="button"
-                class="species-builder__species-item" :class="{ 'is-selected': selectedSubspeciesId === subspecies.id }"
-                @click="openSubspeciesBuilder(subspecies.id)">
+            <div
+              v-if="selectedSpeciesSubspecies.length > 0"
+              class="species-builder__subspecies-list"
+            >
+              <button
+                v-for="subspecies in selectedSpeciesSubspecies"
+                :key="subspecies.id"
+                type="button"
+                class="species-builder__species-item"
+                :class="{ 'is-selected': selectedSubspeciesId === subspecies.id }"
+                @click="openSubspeciesBuilder(subspecies.id)"
+              >
                 <div class="species-builder__species-topline">
                   <strong>{{ subspecies.name || 'Unnamed Subspecies' }}</strong>
                   <span class="species-builder__species-id">{{
                     subspecies.id || 'missing-id'
-                    }}</span>
+                  }}</span>
                 </div>
               </button>
             </div>
 
             <div v-else class="species-builder__empty-state">
               <p>No subspecies created yet.</p>
-              <button type="button" class="species-builder__button species-builder__button--primary"
-                @click="addSubspecies">
+              <button
+                type="button"
+                class="species-builder__button species-builder__button--primary"
+                @click="addSubspecies"
+              >
                 Create First Subspecies
               </button>
             </div>
           </section>
 
-          <SubView :show="isSubspeciesBuilderOpen" :title="selectedSubspecies?.name || 'Subspecies Builder'"
-            @update:show="handleSubspeciesBuilderShowChange" @back="handleSubspeciesBuilderBack">
-            <SubspeciesBuilder v-if="selectedSpecies && selectedSubspecies" :selected-species="selectedSpecies"
-              :selected-subspecies="selectedSubspecies" :selected-subspecies-id-draft="selectedSubspeciesIdDraft"
+          <SubView
+            :show="isSubspeciesBuilderOpen"
+            :title="selectedSubspecies?.name || 'Subspecies Builder'"
+            @update:show="handleSubspeciesBuilderShowChange"
+            @back="handleSubspeciesBuilderBack"
+          >
+            <SubspeciesBuilder
+              v-if="selectedSpecies && selectedSubspecies"
+              :selected-species="selectedSpecies"
+              :selected-subspecies="selectedSubspecies"
+              :selected-subspecies-id-draft="selectedSubspeciesIdDraft"
               :characteristic-keys="characteristicKeys"
               @update:selected-subspecies-id-draft="selectedSubspeciesIdDraft = $event"
-              @delete="deleteSelectedSubspecies" @validation-change="handleSubspeciesValidationChange" />
+              @delete="deleteSelectedSubspecies"
+              @validation-change="handleSubspeciesValidationChange"
+            />
           </SubView>
         </template>
 
         <template v-else>
           <div class="species-builder__empty-state species-builder__card">
             <p>No species selected.</p>
-            <button type="button" class="species-builder__button species-builder__button--primary" @click="addSpecies">
+            <button
+              type="button"
+              class="species-builder__button species-builder__button--primary"
+              @click="addSpecies"
+            >
               Create First Species
             </button>
           </div>
@@ -198,7 +255,7 @@
 <script setup lang="ts">
 import { computed, toRaw } from 'vue';
 import { storeToRefs } from 'pinia';
-import type { CustomSubspeciesDefinition } from '../../../types/module';
+import type { CustomSubspeciesDefinition } from '../../../shared/types/module';
 import { useSpeciesBuilderStore } from '../../stores';
 import SubView from '../../components/SubView.vue';
 import DocumentDrop from '../../components/DocumentDrop.vue';

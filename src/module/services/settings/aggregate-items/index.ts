@@ -1,4 +1,4 @@
-import type { AggregateItemBuilderSettings } from '../../../../types/module';
+import type { AggregateItemBuilderSettings } from '../../../../shared/types/module';
 import { MODULE_NAMESPACE } from '..';
 import { FactoryService } from '../../factory';
 

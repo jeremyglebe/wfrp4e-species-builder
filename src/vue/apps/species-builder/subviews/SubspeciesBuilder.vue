@@ -11,7 +11,9 @@
         <input
           :value="selectedSubspeciesIdDraft"
           type="text"
-          @input="emit('update:selected-subspecies-id-draft', ($event.target as HTMLInputElement).value)"
+          @input="
+            emit('update:selected-subspecies-id-draft', ($event.target as HTMLInputElement).value)
+          "
         />
       </label>
 
@@ -136,7 +138,7 @@ import type {
   CustomSpeciesDefinition,
   CustomSubspeciesDefinition,
   SpeciesCharacteristics,
-} from '../../../../types/module';
+} from '../../../../shared/types/module';
 
 const props = defineProps<{
   selectedSpecies: CustomSpeciesDefinition;

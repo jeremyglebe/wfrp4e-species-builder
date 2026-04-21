@@ -1,4 +1,4 @@
-import type { EffectItemsSettingsConfig } from '../../../../types/module';
+import type { EffectItemsSettingsConfig } from '../../../../shared/types/module';
 import { getAllowedCarrierTypes } from '../aggregate-items';
 import { MODULE_NAMESPACE } from '..';
 import { FactoryService } from '../../factory';

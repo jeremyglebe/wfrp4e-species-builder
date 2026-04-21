@@ -1,6 +1,10 @@
 ﻿import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { BaseActorOverride, CareerEntry, NPCBuilderSettings } from '../../../types/module';
+import type {
+  BaseActorOverride,
+  CareerEntry,
+  NPCBuilderSettings,
+} from '../../../shared/types/module';
 import { FactoryService } from '../../../module/services/factory';
 import {
   getItemFolderByName,

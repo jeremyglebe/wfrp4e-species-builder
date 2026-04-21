@@ -1,4 +1,7 @@
-import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../../types/module';
+import type {
+  CustomSpeciesDefinition,
+  CustomSubspeciesDefinition,
+} from '../../../shared/types/module';
 import mergeObject = foundry.utils.mergeObject;
 
 type WfrpSpeciesConfigFragment = Pick<

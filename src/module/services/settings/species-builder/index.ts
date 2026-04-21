@@ -1,5 +1,8 @@
 import { MODULE_NAMESPACE } from '..';
-import type { CustomSpeciesDefinition, CustomSpeciesSettingsData } from '../../../../types/module';
+import type {
+  CustomSpeciesDefinition,
+  CustomSpeciesSettingsData,
+} from '../../../../shared/types/module';
 import { FactoryService } from '../../factory';
 
 /**

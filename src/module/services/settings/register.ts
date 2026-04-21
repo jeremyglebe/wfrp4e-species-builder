@@ -6,7 +6,7 @@ import type {
   CustomSpeciesSettingsData as CustomSpeciesSettingsConfig,
   EffectItemsSettingsConfig,
   NPCBuilderSettings as NpcBuilderSettingsConfig,
-} from '@/types/module';
+} from '@/shared/types/module';
 
 // Settings keys for each of the builders, used to register
 // their settings under the module's namespace.

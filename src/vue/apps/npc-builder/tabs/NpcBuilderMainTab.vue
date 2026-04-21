@@ -3,14 +3,16 @@
     <div class="npc-builder__build-main">
       <div class="npc-builder__section">
         <div class="npc-builder__section-title">1. Base Statblock</div>
-        <div class="npc-builder__hint">
-          Choose a base actor from your configured base folder.
-        </div>
+        <div class="npc-builder__hint">Choose a base actor from your configured base folder.</div>
 
         <div class="npc-builder__form-group">
           <label>From Base Folder:</label>
-          <select v-model="baseActorId" class="npc-builder__select" :disabled="isBusy"
-            @change="handleBaseActorSelectionChange">
+          <select
+            v-model="baseActorId"
+            class="npc-builder__select"
+            :disabled="isBusy"
+            @change="handleBaseActorSelectionChange"
+          >
             <option value="">-- Select Actor --</option>
             <option v-for="actor in baseActors" :key="actor.id" :value="actor.id">
               {{ actor.name }}
@@ -23,8 +25,12 @@
             <strong>Base Statblock Override</strong>
             <div class="npc-builder__hint">Optional override for the dropdown selection.</div>
           </div>
-          <button type="button" class="npc-builder__button npc-builder__button--small" :disabled="isBusy"
-            @click="toggleBaseOverrideDropZone">
+          <button
+            type="button"
+            class="npc-builder__button npc-builder__button--small"
+            :disabled="isBusy"
+            @click="toggleBaseOverrideDropZone"
+          >
             {{ showBaseOverrideDropZone ? 'Collapse' : 'Expand' }}
           </button>
         </div>
@@ -38,8 +44,11 @@
                 <strong>{{ baseActorOverride.name }}</strong>
                 <div class="npc-builder__override-label">Override active</div>
               </div>
-              <button type="button" class="npc-builder__button npc-builder__button--ghost"
-                @click="setBaseActorOverride(null)">
+              <button
+                type="button"
+                class="npc-builder__button npc-builder__button--ghost"
+                @click="setBaseActorOverride(null)"
+              >
                 Clear
               </button>
             </div>
@@ -62,9 +71,7 @@
             <div v-if="careers.length" class="npc-builder__drop-hint">
               Drop additional Career Items Here
             </div>
-            <div v-else class="npc-builder__drop-placeholder">
-              Drop Career Items Here
-            </div>
+            <div v-else class="npc-builder__drop-placeholder">Drop Career Items Here</div>
           </div>
         </div>
 
@@ -72,35 +79,57 @@
           <label>Queued Careers:</label>
           <div class="npc-builder__career-list">
             <div v-if="careers.length === 0" class="npc-builder__empty">No careers added yet.</div>
-            <div v-for="(career, index) in careers" :key="`${career.uuid}-${index}`" class="npc-builder__career-row">
+            <div
+              v-for="(career, index) in careers"
+              :key="`${career.uuid}-${index}`"
+              class="npc-builder__career-row"
+            >
               <img :src="career.img || ''" class="npc-builder__career-img" />
               <div class="npc-builder__career-info">
                 <strong>{{ career.name }}</strong>
                 <div class="npc-builder__career-meta">
                   Group: {{ career.careergroup || '-' }} | Level: {{ career.level ?? '-' }}
-                  <span v-if="index === careers.length - 1" class="npc-builder__final-label">| Final
-                    Career</span>
+                  <span v-if="index === careers.length - 1" class="npc-builder__final-label"
+                    >| Final Career</span
+                  >
                 </div>
               </div>
 
               <div class="npc-builder__career-controls">
                 <div class="npc-builder__quantity-control">
                   <label>Qty</label>
-                  <input :value="career.quantity" type="number" min="1" class="npc-builder__quantity-input"
-                    @input="onCareerQuantityInput(index, $event)" />
+                  <input
+                    :value="career.quantity"
+                    type="number"
+                    min="1"
+                    class="npc-builder__quantity-input"
+                    @input="onCareerQuantityInput(index, $event)"
+                  />
                 </div>
 
                 <div class="npc-builder__button-group">
-                  <button type="button" class="npc-builder__button npc-builder__button--small"
-                    @click="moveCareer(index, -1)" :disabled="index === 0 || isBusy">
+                  <button
+                    type="button"
+                    class="npc-builder__button npc-builder__button--small"
+                    @click="moveCareer(index, -1)"
+                    :disabled="index === 0 || isBusy"
+                  >
                     ↑
                   </button>
-                  <button type="button" class="npc-builder__button npc-builder__button--small"
-                    @click="moveCareer(index, 1)" :disabled="index === careers.length - 1 || isBusy">
+                  <button
+                    type="button"
+                    class="npc-builder__button npc-builder__button--small"
+                    @click="moveCareer(index, 1)"
+                    :disabled="index === careers.length - 1 || isBusy"
+                  >
                     ↓
                   </button>
-                  <button type="button" class="npc-builder__button npc-builder__button--small"
-                    @click="removeCareer(index)" :disabled="isBusy">
+                  <button
+                    type="button"
+                    class="npc-builder__button npc-builder__button--small"
+                    @click="removeCareer(index)"
+                    :disabled="isBusy"
+                  >
                     Remove
                   </button>
                 </div>
@@ -130,7 +159,9 @@
         <div class="npc-builder__summary-grid">
           <div class="npc-builder__summary-card">
             <div class="npc-builder__summary-label">Base Actor</div>
-            <div class="npc-builder__summary-value">{{ baseActorSummary?.name || 'None selected' }}</div>
+            <div class="npc-builder__summary-value">
+              {{ baseActorSummary?.name || 'None selected' }}
+            </div>
             <div class="npc-builder__summary-note">{{ baseActorSummary?.source || '' }}</div>
           </div>
           <div class="npc-builder__summary-card">
@@ -147,14 +178,31 @@
           Source folder: {{ settings.quickTraitsFolderName || 'NPC Builder Quick Traits' }}
         </div>
 
-        <div class="npc-builder__alloc-actions"
-          style="display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; white-space: nowrap;">
+        <div
+          class="npc-builder__alloc-actions"
+          style="
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+          "
+        >
           <span>Add</span>
-          <input v-model.number="randomTraitCount" type="number" min="1" class="npc-builder__quantity-input"
-            style="width: 42px; margin: 0 6px;" />
+          <input
+            v-model.number="randomTraitCount"
+            type="number"
+            min="1"
+            class="npc-builder__quantity-input"
+            style="width: 42px; margin: 0 6px"
+          />
           <span>Random Traits</span>
-          <button type="button" class="npc-builder__button npc-builder__button--small"
-            :disabled="isBusy || quickTraitOptions.length === 0" @click="onRandomTraits">
+          <button
+            type="button"
+            class="npc-builder__button npc-builder__button--small"
+            :disabled="isBusy || quickTraitOptions.length === 0"
+            @click="onRandomTraits"
+          >
             +
           </button>
         </div>
@@ -163,11 +211,16 @@
           No quick traits found in the configured folder.
         </div>
 
-        <div v-else class="npc-builder__button-group" style="flex-wrap: wrap; gap: 6px;">
-          <button v-for="option in quickTraitOptions" :key="option.key" type="button"
+        <div v-else class="npc-builder__button-group" style="flex-wrap: wrap; gap: 6px">
+          <button
+            v-for="option in quickTraitOptions"
+            :key="option.key"
+            type="button"
             class="npc-builder__button npc-builder__button--small"
-            :class="{ 'npc-builder__button--ghost': hasUserTrait(option.name) }" :disabled="isBusy"
-            @click="onQuickAddTrait(option.uuid)">
+            :class="{ 'npc-builder__button--ghost': hasUserTrait(option.name) }"
+            :disabled="isBusy"
+            @click="onQuickAddTrait(option.uuid)"
+          >
             {{ option.name }}
             <span v-if="hasUserTrait(option.name)"> (Added)</span>
           </button>
@@ -177,8 +230,12 @@
       <div class="npc-builder__section">
         <div class="npc-builder__section-title">Build</div>
         <div class="npc-builder__hint">Fast-path build remains on Main for current workflow.</div>
-        <button type="button" class="npc-builder__button npc-builder__button--primary" @click="onBuildNpc"
-          :disabled="isBusy">
+        <button
+          type="button"
+          class="npc-builder__button npc-builder__button--primary"
+          @click="onBuildNpc"
+          :disabled="isBusy"
+        >
           Build NPC
         </button>
       </div>
@@ -189,7 +246,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import type { BaseActorOption, CareerEntry } from '../../../../types/module';
+import type { BaseActorOption, CareerEntry } from '../../../../shared/types/module';
 import { getActorFolderByName } from '../../../../module/services/settings/npc-builder';
 import { getSpeciesName } from '../naming';
 import { CareerIndexService } from '../../../../module/services/career';
@@ -288,7 +345,9 @@ const previewName = computed(() => {
     return finalCareer.value.name;
   }
 
-  return previewSpecies ? `${previewSpecies} ${finalCareer.value.name}` : `[Species] ${finalCareer.value.name}`;
+  return previewSpecies
+    ? `${previewSpecies} ${finalCareer.value.name}`
+    : `[Species] ${finalCareer.value.name}`;
 });
 
 const previewImageNote = computed(() => {
@@ -441,7 +500,10 @@ async function handleCareerDrop(event: DragEvent): Promise<void> {
 
   isBusy.value = true;
   try {
-    const lowerCareersFound = await careerIndex.getLowerCareersFor(droppedCareerItem, careers.value);
+    const lowerCareersFound = await careerIndex.getLowerCareersFor(
+      droppedCareerItem,
+      careers.value,
+    );
 
     for (const indexedCareer of lowerCareersFound) {
       addOrIncrementCareer(
@@ -460,7 +522,9 @@ async function handleCareerDrop(event: DragEvent): Promise<void> {
     addOrIncrementCareer(droppedCareerEntry, 1);
 
     if (lowerCareersFound.length) {
-      ui.notifications?.info(`Added ${lowerCareersFound.length} lower career(ies) before "${droppedCareerEntry.name}".`);
+      ui.notifications?.info(
+        `Added ${lowerCareersFound.length} lower career(ies) before "${droppedCareerEntry.name}".`,
+      );
     }
   } finally {
     isBusy.value = false;

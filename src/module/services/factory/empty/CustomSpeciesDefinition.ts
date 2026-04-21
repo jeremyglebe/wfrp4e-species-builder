@@ -1,4 +1,4 @@
-import type { CustomSpeciesDefinition } from '@/types/module';
+import type { CustomSpeciesDefinition } from '@/shared/types/module';
 
 import SpeciesCharacteristics from './SpeciesCharacteristics';
 

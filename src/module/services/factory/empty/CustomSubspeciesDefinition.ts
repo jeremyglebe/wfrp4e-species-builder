@@ -1,4 +1,4 @@
-import type { CustomSubspeciesDefinition } from '@/types/module';
+import type { CustomSubspeciesDefinition } from '@/shared/types/module';
 
 export default function (): CustomSubspeciesDefinition {
   return {

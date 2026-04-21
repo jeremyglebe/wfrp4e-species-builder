@@ -1,12 +1,18 @@
 <template>
   <div class="item-builder application">
     <div class="item-builder__tabs">
-      <button type="button" :class="['item-builder__tab', { 'is-active': activeTab === 'build' }]"
-        @click="activeTab = 'build'">
+      <button
+        type="button"
+        :class="['item-builder__tab', { 'is-active': activeTab === 'build' }]"
+        @click="activeTab = 'build'"
+      >
         Build
       </button>
-      <button type="button" :class="['item-builder__tab', { 'is-active': activeTab === 'options' }]"
-        @click="activeTab = 'options'">
+      <button
+        type="button"
+        :class="['item-builder__tab', { 'is-active': activeTab === 'options' }]"
+        @click="activeTab = 'options'"
+      >
         Options
       </button>
     </div>
@@ -40,7 +46,11 @@
           <input v-model="manualEffectUuid" type="text" placeholder="Actor...ActiveEffect..." />
         </label>
 
-        <button type="button" class="item-builder__button item-builder__button--ghost" @click="useOpenEffect">
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--ghost"
+          @click="useOpenEffect"
+        >
           Use Open Effect Sheet
         </button>
 
@@ -52,24 +62,36 @@
       <section class="item-builder__section item-builder__side">
         <h3>Create Carrier Item</h3>
 
-        <label class="item-builder__field"><span>Name</span><input v-model="itemName" type="text" /></label>
-        <label class="item-builder__field"><span>Type</span>
+        <label class="item-builder__field"
+          ><span>Name</span><input v-model="itemName" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Type</span>
           <select v-model="itemType">
             <option v-for="typeName in availableTypes" :key="typeName" :value="typeName">
               {{ typeName }}
             </option>
           </select>
         </label>
-        <label class="item-builder__field"><span>Folder</span>
+        <label class="item-builder__field"
+          ><span>Folder</span>
           <select v-model="folderId">
             <option value="">(Use / create: {{ settings.fallbackFolderName }})</option>
-            <option v-for="folder in itemFolders" :key="folder.id || folder._id || folder.name" :value="folder.id">
+            <option
+              v-for="folder in itemFolders"
+              :key="folder.id || folder._id || folder.name"
+              :value="folder.id"
+            >
               {{ folder.name }}
             </option>
           </select>
         </label>
 
-        <button type="button" class="item-builder__button item-builder__button--primary" @click="createItem">
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--primary"
+          @click="createItem"
+        >
           Create Item
         </button>
       </section>
@@ -78,23 +100,33 @@
     <div class="item-builder__content" v-else>
       <section class="item-builder__section item-builder__main">
         <h3>Defaults</h3>
-        <label class="item-builder__field"><span>Name Prefix</span><input v-model="settings.namePrefix"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Default Item Type</span>
+        <label class="item-builder__field"
+          ><span>Name Prefix</span><input v-model="settings.namePrefix" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Default Item Type</span>
           <select v-model="settings.defaultItemType">
             <option v-for="typeName in availableTypes" :key="typeName" :value="typeName">
               {{ typeName }}
             </option>
           </select>
         </label>
-        <label class="item-builder__field"><span>Fallback Folder Name</span><input v-model="settings.fallbackFolderName"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Remember Folder Selection</span><input
-            v-model="settings.rememberLastFolder" type="checkbox" /></label>
+        <label class="item-builder__field"
+          ><span>Fallback Folder Name</span
+          ><input v-model="settings.fallbackFolderName" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Remember Folder Selection</span
+          ><input v-model="settings.rememberLastFolder" type="checkbox"
+        /></label>
       </section>
       <section class="item-builder__section item-builder__side">
         <h3>Actions</h3>
-        <button type="button" class="item-builder__button item-builder__button--primary" @click="saveSettings">
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--primary"
+          @click="saveSettings"
+        >
           Save Settings
         </button>
       </section>
@@ -113,7 +145,7 @@ import {
   loadEffectToItemBuilderSettings,
   saveEffectToItemBuilderSettings,
 } from '../../module/services/settings/effect-items';
-import type { EffectItemsSettingsConfig } from '../../types/module';
+import type { EffectItemsSettingsConfig } from '../../shared/types/module';
 
 const activeTab = ref<'build' | 'options'>('build');
 const settings = ref<EffectItemsSettingsConfig>(loadEffectToItemBuilderSettings());

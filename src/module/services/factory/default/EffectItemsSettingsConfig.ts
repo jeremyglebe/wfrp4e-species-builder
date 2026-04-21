@@ -1,4 +1,4 @@
-import type { EffectItemsSettingsConfig as SettingsConfig } from '@/types/module';
+import type { EffectItemsSettingsConfig as SettingsConfig } from '@/shared/types/module';
 
 export function EffectItemsSettingsConfig(): SettingsConfig {
   return {

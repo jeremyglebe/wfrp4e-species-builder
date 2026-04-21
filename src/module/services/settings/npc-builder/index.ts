@@ -1,4 +1,4 @@
-import type { NPCBuilderSettings } from '../../../../types/module';
+import type { NPCBuilderSettings } from '../../../../shared/types/module';
 import { MODULE_NAMESPACE } from '..';
 import { FactoryService } from '../../factory';
 

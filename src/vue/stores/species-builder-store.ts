@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref, toRaw, watch } from 'vue';
-import type { CustomSpeciesDefinition, CustomSubspeciesDefinition } from '../../types/module';
+import type {
+  CustomSpeciesDefinition,
+  CustomSubspeciesDefinition,
+} from '../../shared/types/module';
 import { SettingsService } from '../../module/services/settings';
 import { FactoryService } from '@/module/services/factory';
 

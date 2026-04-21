@@ -1,12 +1,18 @@
 <template>
   <div class="item-builder application">
     <div class="item-builder__tabs">
-      <button type="button" :class="['item-builder__tab', { 'is-active': activeTab === 'build' }]"
-        @click="activeTab = 'build'">
+      <button
+        type="button"
+        :class="['item-builder__tab', { 'is-active': activeTab === 'build' }]"
+        @click="activeTab = 'build'"
+      >
         Build
       </button>
-      <button type="button" :class="['item-builder__tab', { 'is-active': activeTab === 'options' }]"
-        @click="activeTab = 'options'">
+      <button
+        type="button"
+        :class="['item-builder__tab', { 'is-active': activeTab === 'options' }]"
+        @click="activeTab = 'options'"
+      >
         Options
       </button>
     </div>
@@ -14,7 +20,9 @@
     <div class="item-builder__content" v-if="activeTab === 'build'">
       <section class="item-builder__section item-builder__main">
         <h3>Source Items</h3>
-        <p class="item-builder__hint">Drag Item documents from sidebar or compendium into the zone.</p>
+        <p class="item-builder__hint">
+          Drag Item documents from sidebar or compendium into the zone.
+        </p>
 
         <div class="item-builder__drop-zone" @dragover.prevent @drop="handleDrop">
           <strong>Drop Items Here</strong>
@@ -30,8 +38,13 @@
                 <div class="item-builder__uuid">{{ item.uuid }}</div>
               </div>
             </div>
-            <button type="button" class="item-builder__button item-builder__button--ghost"
-              @click="removeItem(item.uuid)">Remove</button>
+            <button
+              type="button"
+              class="item-builder__button item-builder__button--ghost"
+              @click="removeItem(item.uuid)"
+            >
+              Remove
+            </button>
           </div>
         </div>
       </section>
@@ -43,7 +56,11 @@
           <span>Folder</span>
           <select v-model="buildFolderId">
             <option value="">(Use / create: {{ settings.fallbackFolderName }})</option>
-            <option v-for="folder in itemFolders" :key="folder.id || folder._id || folder.name" :value="folder.id">
+            <option
+              v-for="folder in itemFolders"
+              :key="folder.id || folder._id || folder.name"
+              :value="folder.id"
+            >
               {{ folder.name }}
             </option>
           </select>
@@ -52,8 +69,9 @@
         <label class="item-builder__field">
           <span>Carrier Type</span>
           <select v-model="buildCarrierType">
-            <option v-for="typeName in availableCarrierTypes" :key="typeName" :value="typeName">{{ typeName
-            }}</option>
+            <option v-for="typeName in availableCarrierTypes" :key="typeName" :value="typeName">
+              {{ typeName }}
+            </option>
           </select>
         </label>
 
@@ -63,15 +81,27 @@
         </label>
 
         <p class="item-builder__hint">
-          Effect mode: <strong>{{ settings.effectMode === 'perItem' ? 'One effect per item' : 'Single effect'
+          Effect mode:
+          <strong>{{
+            settings.effectMode === 'perItem' ? 'One effect per item' : 'Single effect'
           }}</strong>
         </p>
 
         <div class="item-builder__actions">
-          <button type="button" class="item-builder__button item-builder__button--ghost"
-            @click="clearItems">Clear</button>
-          <button type="button" class="item-builder__button item-builder__button--primary"
-            @click="createCarrierItem">Create Carrier Item</button>
+          <button
+            type="button"
+            class="item-builder__button item-builder__button--ghost"
+            @click="clearItems"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            class="item-builder__button item-builder__button--primary"
+            @click="createCarrierItem"
+          >
+            Create Carrier Item
+          </button>
         </div>
       </section>
     </div>
@@ -80,34 +110,49 @@
       <section class="item-builder__section item-builder__main">
         <h3>Defaults</h3>
 
-        <label class="item-builder__field"><span>Default Prefix</span><input v-model="settings.defaultPrefix"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Default Suffix</span><input v-model="settings.defaultSuffix"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Default Carrier Type</span>
+        <label class="item-builder__field"
+          ><span>Default Prefix</span><input v-model="settings.defaultPrefix" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Default Suffix</span><input v-model="settings.defaultSuffix" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Default Carrier Type</span>
           <select v-model="settings.defaultItemType">
-            <option v-for="typeName in availableCarrierTypes" :key="typeName" :value="typeName">{{ typeName
-            }}</option>
+            <option v-for="typeName in availableCarrierTypes" :key="typeName" :value="typeName">
+              {{ typeName }}
+            </option>
           </select>
         </label>
-        <label class="item-builder__field"><span>Fallback Folder Name</span><input v-model="settings.fallbackFolderName"
-            type="text" /></label>
-        <label class="item-builder__field"><span>Remember Folder Selection</span><input
-            v-model="settings.rememberLastFolder" type="checkbox" /></label>
+        <label class="item-builder__field"
+          ><span>Fallback Folder Name</span
+          ><input v-model="settings.fallbackFolderName" type="text"
+        /></label>
+        <label class="item-builder__field"
+          ><span>Remember Folder Selection</span
+          ><input v-model="settings.rememberLastFolder" type="checkbox"
+        /></label>
       </section>
 
       <section class="item-builder__section item-builder__side">
         <h3>Effect Behavior</h3>
-        <label class="item-builder__field"><span>Effect Mode</span>
+        <label class="item-builder__field"
+          ><span>Effect Mode</span>
           <select v-model="settings.effectMode">
             <option value="single">Single Effect</option>
             <option value="perItem">One Effect Per Item</option>
           </select>
         </label>
-        <label class="item-builder__field"><span>Single Effect Name</span><input v-model="settings.defaultEffectName"
-            type="text" /></label>
-        <button type="button" class="item-builder__button item-builder__button--primary" @click="saveSettings">Save
-          Settings</button>
+        <label class="item-builder__field"
+          ><span>Single Effect Name</span><input v-model="settings.defaultEffectName" type="text"
+        /></label>
+        <button
+          type="button"
+          class="item-builder__button item-builder__button--primary"
+          @click="saveSettings"
+        >
+          Save Settings
+        </button>
       </section>
     </div>
   </div>
@@ -122,7 +167,7 @@ import {
   loadAggregateItemBuilderSettings,
   saveAggregateItemBuilderSettings,
 } from '../../module/services/settings/aggregate-items';
-import type { AggregateItemBuilderSettings } from '../../types/module';
+import type { AggregateItemBuilderSettings } from '../../shared/types/module';
 
 type DroppedItem = { uuid: string; name: string; img: string };
 
@@ -193,7 +238,10 @@ async function handleDrop(event: DragEvent): Promise<void> {
     selectedItemsByUuid.value = nextMap;
   }
 
-  if (!buildCarrierName.value.trim() || buildCarrierName.value.trim() === settings.value.defaultPrefix.trim()) {
+  if (
+    !buildCarrierName.value.trim() ||
+    buildCarrierName.value.trim() === settings.value.defaultPrefix.trim()
+  ) {
     buildCarrierName.value = buildDefaultCarrierName();
   }
 }
@@ -222,7 +270,9 @@ function buildAddItemsScript(itemUuids: string[]): string {
   lines.push('  itemDataToCreate.push(data);');
   lines.push('}');
   lines.push('if (itemDataToCreate.length) {');
-  lines.push('  await this.actor.createEmbeddedDocuments("Item", itemDataToCreate, { fromEffect: this.effect.id });');
+  lines.push(
+    '  await this.actor.createEmbeddedDocuments("Item", itemDataToCreate, { fromEffect: this.effect.id });',
+  );
   lines.push('}');
   return lines.join('\n');
 }
@@ -285,10 +335,17 @@ async function createCarrierItem(): Promise<void> {
 
   if (settings.value.effectMode === 'single') {
     const effectName = settings.value.defaultEffectName.trim() || 'Grant Items';
-    effects.push(buildScriptedEffectData(effectName, buildAddItemsScript(selectedItems.value.map((i) => i.uuid))));
+    effects.push(
+      buildScriptedEffectData(
+        effectName,
+        buildAddItemsScript(selectedItems.value.map((i) => i.uuid)),
+      ),
+    );
   } else {
     for (const sourceItem of selectedItems.value) {
-      effects.push(buildScriptedEffectData(sourceItem.name, buildAddItemsScript([sourceItem.uuid])));
+      effects.push(
+        buildScriptedEffectData(sourceItem.name, buildAddItemsScript([sourceItem.uuid])),
+      );
     }
   }
 
@@ -304,21 +361,24 @@ async function createCarrierItem(): Promise<void> {
     `<p><strong>This item grants the following Items:</strong></p><ul>${listHtml}</ul>`,
   );
 
-  const createdItem = await Item.create({
-    name: buildCarrierName.value.trim() || buildDefaultCarrierName(),
-    type: itemType as any,
-    img: selectedItems.value[0]?.img || 'icons/svg/aura.svg',
-    folder: folder.id,
-    system: systemData,
-    effects,
-    flags: {
-      'aggregate-item-builder': {
-        createdAt: Date.now(),
-        grantedItemUuids: selectedItems.value.map((i) => i.uuid),
-        effectMode: settings.value.effectMode,
+  const createdItem = await Item.create(
+    {
+      name: buildCarrierName.value.trim() || buildDefaultCarrierName(),
+      type: itemType as any,
+      img: selectedItems.value[0]?.img || 'icons/svg/aura.svg',
+      folder: folder.id,
+      system: systemData,
+      effects,
+      flags: {
+        'aggregate-item-builder': {
+          createdAt: Date.now(),
+          grantedItemUuids: selectedItems.value.map((i) => i.uuid),
+          effectMode: settings.value.effectMode,
+        },
       },
-    },
-  } as any, { renderSheet: true });
+    } as any,
+    { renderSheet: true },
+  );
 
   if (!createdItem) {
     ui.notifications?.error('Carrier item creation failed.');
