@@ -3,7 +3,7 @@ import type { Definition_RandomTalents } from './Definition_RandomTalents';
 import type { Definition_Subspecies } from './Definition_Subspecies';
 import type { Definition_SpeciesHeight } from './Definition_SpeciesHeight';
 
-export interface ConfigFragment_Species {
+export interface Fragment_Config_SpeciesComponents {
   readonly species: Record<string, string>; // species ids -> species names
   readonly speciesCharacteristics: Record<string, Definition_SpeciesCharacteristics>; // species ids -> characteristic formulas
   readonly speciesSkills: Record<string, string[]>; // species ids -> species skills
